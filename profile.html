@@ -1,3 +1,4 @@
+html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -525,7 +526,7 @@
                         </div>
                         <div class="progress-info">
                             <h3>Серия дней</h3>
-                            <div class="progress-value" id="streakDays">2</div>
+                            <div class="progress-value" id="streakDays">0</div>
                         </div>
                     </div>
                     
@@ -535,7 +536,7 @@
                         </div>
                         <div class="progress-info">
                             <h3>Всего дней</h3>
-                            <div class="progress-value" id="totalDays">2</div>
+                            <div class="progress-value" id="totalDays">0</div>
                         </div>
                     </div>
                     
@@ -691,17 +692,10 @@
         const profileKey = `profile_${userId}`;
         const profile = JSON.parse(localStorage.getItem(profileKey) || '{}');
         
-        // Если профиля нет, создаем с начальным значением 50
-        if (!profile.goal) {
-            profile.goal = 50;
-            profile.streak = 2;
-            profile.totalDays = 2;
-        } else {
-            profile.goal = profile.goal + 5;
-            profile.streak = (profile.streak || 0) + 1;
-            profile.totalDays = (profile.totalDays || 0) + 1;
-        }
-        
+        // ИЗМЕНЕНО: начальное значение 50 вместо 40
+        profile.goal = (profile.goal || 50) + 5;
+        profile.streak = (profile.streak || 0) + 1;
+        profile.totalDays = (profile.totalDays || 0) + 1;
         profile.lastUpdated = new Date().toISOString();
         
         localStorage.setItem(profileKey, JSON.stringify(profile));
@@ -751,9 +745,9 @@
     // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     let currentUserId = null;
     let currentUserName = null;
-    let currentGoal = 50; // ИЗМЕНЕНО: сегодня 50 секунд
-    let currentStreak = 2; // ИЗМЕНЕНО: серия 2 дня
-    let currentTotalDays = 2; // ИЗМЕНЕНО: всего 2 дня
+    let currentGoal = 50; // ИЗМЕНЕНО: было 40, стало 50
+    let currentStreak = 0;
+    let currentTotalDays = 0;
     let stopwatchInterval = null;
     let stopwatchTime = 0;
     let stopwatchRunning = false;
@@ -848,17 +842,17 @@
             const profileKey = `profile_${user.id}`;
             const savedProfile = localStorage.getItem(profileKey);
             
-            // ИЗМЕНЕНО: начальные значения 50 секунд и 2 дня
+            // ИЗМЕНЕНО: начальное значение 50 вместо 40
             let userGoal = 50;
-            let userStreak = 2;
-            let userTotalDays = 2;
+            let userStreak = 0;
+            let userTotalDays = 0;
             
             if (savedProfile) {
                 try {
                     const profile = JSON.parse(savedProfile);
                     userGoal = profile.goal || 50; // ИЗМЕНЕНО: было 40, стало 50
-                    userStreak = profile.streak || 2; // ИЗМЕНЕНО: было 0, стало 2
-                    userTotalDays = profile.totalDays || 2; // ИЗМЕНЕНО: было 0, стало 2
+                    userStreak = profile.streak || 0;
+                    userTotalDays = profile.totalDays || 0;
                 } catch (e) {
                     console.error('Ошибка загрузки профиля для', user.name, e);
                 }
@@ -1041,8 +1035,8 @@
             try {
                 const profile = JSON.parse(savedProfile);
                 currentGoal = profile.goal || 50; // ИЗМЕНЕНО: было 40, стало 50
-                currentStreak = profile.streak || 2; // ИЗМЕНЕНО: было 0, стало 2
-                currentTotalDays = profile.totalDays || 2; // ИЗМЕНЕНО: было 0, стало 2
+                currentStreak = profile.streak || 0;
+                currentTotalDays = profile.totalDays || 0;
             } catch (e) {
                 console.error('Ошибка загрузки профиля:', e);
             }
@@ -1088,5 +1082,105 @@
     }
     
     function decreaseDailyGoal() {
-        currentGoal = Math.max(50, currentGoal - 5); // ИЗМЕНЕНО: минимальная цель 50
-       
+        // ИЗМЕНЕНО: минимальная цель 50 вместо 40
+        currentGoal = Math.max(50, currentGoal - 5);
+        currentStreak = Math.max(0, currentStreak - 1);
+        
+        document.getElementById('dailyGoal').textContent = currentGoal;
+        document.getElementById('tomorrowGoal').textContent = currentGoal + 5;
+        document.getElementById('streakDays').textContent = currentStreak;
+        
+        saveProfile();
+        
+        // Обновляем статистику команды
+        loadTeamStats();
+    }
+    
+    // ========== СЕКУНДОМЕР ==========
+    
+    function startStopwatch() {
+        if (!stopwatchRunning) {
+            stopwatchRunning = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            
+            stopwatchInterval = setInterval(() => {
+                stopwatchTime++;
+                updateStopwatchDisplay();
+            }, 1000);
+        }
+    }
+    
+    function pauseStopwatch() {
+        if (stopwatchRunning) {
+            stopwatchRunning = false;
+            clearInterval(stopwatchInterval);
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+        }
+    }
+    
+    function resetStopwatch() {
+        pauseStopwatch();
+        stopwatchTime = 0;
+        updateStopwatchDisplay();
+    }
+    
+    function updateStopwatchDisplay() {
+        const minutes = Math.floor(stopwatchTime / 60);
+        const seconds = stopwatchTime % 60;
+        document.getElementById('stopwatch').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    function saveStopwatchTime() {
+        if (stopwatchTime === 0) {
+            alert('Секундомер показывает 0 секунд. Запустите его сначала.');
+            return;
+        }
+        
+        if (confirm(`Сохранить результат ${stopwatchTime} секунд как рекорд?`)) {
+            localStorage.setItem(`record_${currentUserId}`, stopwatchTime.toString());
+            document.getElementById('recordTime').textContent = `${stopwatchTime} сек`;
+            resetStopwatch();
+            alert(`Рекорд ${stopwatchTime} секунд сохранен!`);
+            updateLastUpdateTime();
+        }
+    }
+    
+    // ========== ИНИЦИАЛИЗАЦИЯ ==========
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Загружаем данные профиля
+        loadProfileData();
+        
+        // Назначаем обработчики для кнопок
+        document.getElementById('markSessionBtn').addEventListener('click', markSession);
+        document.getElementById('undoSessionBtn').addEventListener('click', undoSession);
+        
+        // Секундомер
+        document.getElementById('startBtn').addEventListener('click', startStopwatch);
+        document.getElementById('pauseBtn').addEventListener('click', pauseStopwatch);
+        document.getElementById('resetBtn').addEventListener('click', resetStopwatch);
+        document.getElementById('saveBtn').addEventListener('click', saveStopwatchTime);
+        
+        // Кнопка обновления
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            loadFromLocalStorage();
+            loadTodaySessions();
+            loadTeamStats();
+            updateLastUpdateTime();
+            alert('Данные обновлены!');
+        });
+        
+        // Отключаем кнопку паузы по умолчанию
+        document.getElementById('pauseBtn').disabled = true;
+        
+        // Автоматическая проверка новых дней каждые 5 минут
+        setInterval(() => {
+            checkAndUpdateDailySystem();
+        }, 5 * 60 * 1000); // 5 минут
+    });
+    </script>
+</body>
+</html>
