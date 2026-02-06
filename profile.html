@@ -507,11 +507,11 @@
                     <div class="date" id="currentDate"></div>
                 </div>
                 <div class="goal-display">
-                    <div class="goal-time" id="dailyGoal">55</div>
+                    <div class="goal-time" id="dailyGoal">50</div>
                     <div class="goal-label">секунд</div>
                 </div>
                 <div class="goal-info">
-                    <p><i class="fas fa-info-circle"></i> Завтра цель: <span id="tomorrowGoal">60</span> сек</p>
+                    <p><i class="fas fa-info-circle"></i> Завтра цель: <span id="tomorrowGoal">55</span> сек</p>
                 </div>
             </div>
 
@@ -525,7 +525,7 @@
                         </div>
                         <div class="progress-info">
                             <h3>Серия дней</h3>
-                            <div class="progress-value" id="streakDays">3</div>
+                            <div class="progress-value" id="streakDays">2</div>
                         </div>
                     </div>
                     
@@ -535,7 +535,7 @@
                         </div>
                         <div class="progress-info">
                             <h3>Всего дней</h3>
-                            <div class="progress-value" id="totalDays">3</div>
+                            <div class="progress-value" id="totalDays">2</div>
                         </div>
                     </div>
                     
@@ -691,11 +691,11 @@
         const profileKey = `profile_${userId}`;
         const profile = JSON.parse(localStorage.getItem(profileKey) || '{}');
         
-        // Если профиля нет, создаем с начальным значением 55
+        // Если профиля нет, создаем с начальным значением 50
         if (!profile.goal) {
-            profile.goal = 55;
-            profile.streak = 3;
-            profile.totalDays = 3;
+            profile.goal = 50;
+            profile.streak = 2;
+            profile.totalDays = 2;
         } else {
             profile.goal = profile.goal + 5;
             profile.streak = (profile.streak || 0) + 1;
@@ -751,9 +751,9 @@
     // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     let currentUserId = null;
     let currentUserName = null;
-    let currentGoal = 55; // ИЗМЕНЕНО: было 40, стало 55
-    let currentStreak = 3; // ИЗМЕНЕНО: было 0, стало 3
-    let currentTotalDays = 3; // ИЗМЕНЕНО: было 0, стало 3
+    let currentGoal = 50; // ИЗМЕНЕНО: сегодня 50 секунд
+    let currentStreak = 2; // ИЗМЕНЕНО: серия 2 дня
+    let currentTotalDays = 2; // ИЗМЕНЕНО: всего 2 дня
     let stopwatchInterval = null;
     let stopwatchTime = 0;
     let stopwatchRunning = false;
@@ -848,17 +848,17 @@
             const profileKey = `profile_${user.id}`;
             const savedProfile = localStorage.getItem(profileKey);
             
-            // ИЗМЕНЕНО: начальные значения 55 секунд и 3 дня
-            let userGoal = 55;
-            let userStreak = 3;
-            let userTotalDays = 3;
+            // ИЗМЕНЕНО: начальные значения 50 секунд и 2 дня
+            let userGoal = 50;
+            let userStreak = 2;
+            let userTotalDays = 2;
             
             if (savedProfile) {
                 try {
                     const profile = JSON.parse(savedProfile);
-                    userGoal = profile.goal || 55; // ИЗМЕНЕНО: было 40, стало 55
-                    userStreak = profile.streak || 3; // ИЗМЕНЕНО: было 0, стало 3
-                    userTotalDays = profile.totalDays || 3; // ИЗМЕНЕНО: было 0, стало 3
+                    userGoal = profile.goal || 50; // ИЗМЕНЕНО: было 40, стало 50
+                    userStreak = profile.streak || 2; // ИЗМЕНЕНО: было 0, стало 2
+                    userTotalDays = profile.totalDays || 2; // ИЗМЕНЕНО: было 0, стало 2
                 } catch (e) {
                     console.error('Ошибка загрузки профиля для', user.name, e);
                 }
@@ -1040,9 +1040,9 @@
         if (savedProfile) {
             try {
                 const profile = JSON.parse(savedProfile);
-                currentGoal = profile.goal || 55; // ИЗМЕНЕНО: было 40, стало 55
-                currentStreak = profile.streak || 3; // ИЗМЕНЕНО: было 0, стало 3
-                currentTotalDays = profile.totalDays || 3; // ИЗМЕНЕНО: было 0, стало 3
+                currentGoal = profile.goal || 50; // ИЗМЕНЕНО: было 40, стало 50
+                currentStreak = profile.streak || 2; // ИЗМЕНЕНО: было 0, стало 2
+                currentTotalDays = profile.totalDays || 2; // ИЗМЕНЕНО: было 0, стало 2
             } catch (e) {
                 console.error('Ошибка загрузки профиля:', e);
             }
@@ -1088,4 +1088,5 @@
     }
     
     function decreaseDailyGoal() {
-        currentGoal = Math.max(55, current
+        currentGoal = Math.max(50, currentGoal - 5); // ИЗМЕНЕНО: минимальная цель 50
+       
