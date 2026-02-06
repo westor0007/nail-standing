@@ -1,3 +1,4 @@
+html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -621,6 +622,125 @@
     </div>
 
     <script>
+    // ========== СИСТЕМА АВТОМАТИЧЕСКОГО ОБНОВЛЕНИЯ ==========
+    
+    // Проверяем и обновляем систему при загрузке
+    function checkAndUpdateDailySystem() {
+        const today = getTodayDate();
+        const lastUpdate = localStorage.getItem('last_system_update');
+        
+        console.log('🔍 Проверка системы:');
+        console.log('Сегодня:', today);
+        console.log('Последнее обновление:', lastUpdate);
+        
+        // Если это первый запуск или новый день
+        if (!lastUpdate || lastUpdate !== today) {
+            console.log('🔄 Новый день! Обновляем систему...');
+            
+            // Обновляем цели для ВСЕХ пользователей
+            updateAllUsersGoalsForNewDay();
+            
+            // Сохраняем дату обновления
+            localStorage.setItem('last_system_update', today);
+            
+            // Показываем уведомление (если это не первый запуск)
+            if (lastUpdate && currentUserId) {
+                setTimeout(() => showNewDayNotification(), 1000);
+            }
+            
+            return true;
+        }
+        
+        console.log('✅ Система актуальна');
+        return false;
+    }
+    
+    // Обновляем цели всех пользователей при новом дне
+    function updateAllUsersGoalsForNewDay() {
+        const userIds = ['1', '2', '3'];
+        const yesterday = getYesterdayDate();
+        
+        userIds.forEach(userId => {
+            // Проверяем сессии за вчера
+            const yesterdaySessionsKey = `sessions_${userId}_${yesterday}`;
+            const yesterdaySessionsData = localStorage.getItem(yesterdaySessionsKey);
+            
+            if (yesterdaySessionsData) {
+                try {
+                    const sessions = JSON.parse(yesterdaySessionsData);
+                    
+                    // Если пользователь выполнил 2 сессии вчера
+                    if (sessions.count >= 2) {
+                        console.log(`🎯 Пользователь ${userId} выполнил 2 сессии вчера. Увеличиваем цель!`);
+                        increaseUserGoal(userId);
+                    } else {
+                        // Если меньше 2 сессий - сбрасываем серию
+                        resetUserStreak(userId);
+                    }
+                } catch (e) {
+                    console.error('Ошибка при обновлении целей:', e);
+                }
+            } else {
+                // Если вообще не было сессий - сбрасываем серию
+                resetUserStreak(userId);
+            }
+        });
+    }
+    
+    // Увеличить цель пользователя
+    function increaseUserGoal(userId) {
+        const profileKey = `profile_${userId}`;
+        const profile = JSON.parse(localStorage.getItem(profileKey) || '{}');
+        
+        profile.goal = (profile.goal || 40) + 5;
+        profile.streak = (profile.streak || 0) + 1;
+        profile.totalDays = (profile.totalDays || 0) + 1;
+        profile.lastUpdated = new Date().toISOString();
+        
+        localStorage.setItem(profileKey, JSON.stringify(profile));
+        console.log(`📈 Новая цель для ${userId}: ${profile.goal} секунд`);
+    }
+    
+    // Сбросить серию пользователя
+    function resetUserStreak(userId) {
+        const profileKey = `profile_${userId}`;
+        const profile = JSON.parse(localStorage.getItem(profileKey) || '{}');
+        
+        profile.streak = 0;
+        profile.lastUpdated = new Date().toISOString();
+        
+        localStorage.setItem(profileKey, JSON.stringify(profile));
+        console.log(`🔄 Сброшена серия для ${userId}`);
+    }
+    
+    // Показать уведомление о новом дне
+    function showNewDayNotification() {
+        const yesterday = getYesterdayDate();
+        const yesterdaySessionsKey = `sessions_${currentUserId}_${yesterday}`;
+        const yesterdaySessionsData = localStorage.getItem(yesterdaySessionsKey);
+        
+        let message = '🌅 Новый день начался!';
+        
+        if (yesterdaySessionsData) {
+            try {
+                const sessions = JSON.parse(yesterdaySessionsData);
+                if (sessions.count >= 2) {
+                    message += '\n🎉 Вчера вы выполнили 2 сессии!\n📈 Сегодняшняя цель увеличена на 5 секунд!';
+                } else if (sessions.count === 1) {
+                    message += '\n😔 Вчера была только 1 сессия\n➡️ Цель не увеличилась';
+                } else {
+                    message += '\n⏸️ Вчера не было сессий\n➡️ Серия дней сброшена';
+                }
+            } catch (e) {
+                console.error('Ошибка при показе уведомления:', e);
+            }
+        }
+        
+        if (confirm(message + '\n\nОбновить страницу для новых данных?')) {
+            location.reload();
+        }
+    }
+    
     // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     let currentUserId = null;
     let currentUserName = null;
@@ -638,9 +758,32 @@
         { id: '3', name: 'Лиза', color: '#e74c3c' }
     ];
     
+    // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+    
+    // Получить сегодняшнюю дату в формате YYYY-MM-DD
+    function getTodayDate() {
+        return new Date().toISOString().split('T')[0];
+    }
+    
+    // Получить вчерашнюю дату
+    function getYesterdayDate() {
+        const yesterday = new Date();
+        yesterday.setDate(yesterday.getDate() - 1);
+        return yesterday.toISOString().split('T')[0];
+    }
+    
+    // Обновление времени последнего обновления
+    function updateLastUpdateTime() {
+        const now = new Date();
+        document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('ru-RU');
+    }
+    
     // ========== ОСНОВНАЯ ФУНКЦИЯ ЗАГРУЗКИ ==========
     
     function loadProfileData() {
+        // Сначала проверяем и обновляем систему
+        checkAndUpdateDailySystem();
+        
         // Получаем ID пользователя из URL
         const urlParams = new URLSearchParams(window.location.search);
         currentUserId = urlParams.get('user');
@@ -689,7 +832,7 @@
     
     function loadTeamStats() {
         const teamStatsContainer = document.getElementById('teamStats');
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDate();
         
         let teamStatsHTML = '';
         
@@ -765,7 +908,7 @@
     // ========== РАБОТА С СЕССИЯМИ ==========
     
     function loadTodaySessions() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDate();
         const storageKey = `sessions_${currentUserId}_${today}`;
         const savedData = localStorage.getItem(storageKey);
         
@@ -816,7 +959,7 @@
         
         // Увеличиваем счетчик
         const newCount = currentCount + 1;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDate();
         
         // Сохраняем в localStorage
         const storageKey = `sessions_${currentUserId}_${today}`;
@@ -834,8 +977,8 @@
         
         // Если это вторая сессия - увеличиваем цель
         if (newCount === 2) {
-            increaseDailyGoal();
-            alert('🎉 Вы выполнили 2 сессии сегодня!\n\n📈 Завтрашняя цель увеличена на 5 секунд!');
+            increaseUserGoal(currentUserId); // Используем новую функцию
+            alert('🎉 Вы выполнили 2 сессии сегодня!\n\n📈 Завтрашняя цель будет увеличена на 5 секунд!');
         } else {
             alert(`✅ Сессия ${newCount}/2 отмечена!\n\n👉 Выполните вторую сессию для увеличения цели.`);
         }
@@ -853,7 +996,7 @@
         }
         
         const newCount = currentCount - 1;
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayDate();
         const storageKey = `sessions_${currentUserId}_${today}`;
         
         if (newCount === 0) {
@@ -916,7 +1059,7 @@
             goal: currentGoal,
             streak: currentStreak,
             totalDays: currentTotalDays,
-            lastUpdate: new Date().toISOString()
+            lastUpdated: new Date().toISOString()
         }));
     }
     
@@ -1002,13 +1145,6 @@
         }
     }
     
-    // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
-    
-    function updateLastUpdateTime() {
-        const now = new Date();
-        document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('ru-RU');
-    }
-    
     // ========== ИНИЦИАЛИЗАЦИЯ ==========
     
     document.addEventListener('DOMContentLoaded', function() {
@@ -1036,6 +1172,11 @@
         
         // Отключаем кнопку паузы по умолчанию
         document.getElementById('pauseBtn').disabled = true;
+        
+        // Автоматическая проверка новых дней каждые 5 минут
+        setInterval(() => {
+            checkAndUpdateDailySystem();
+        }, 5 * 60 * 1000); // 5 минут
     });
     </script>
 </body>
