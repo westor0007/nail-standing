@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Гвоздестойцы 5+</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <h1><i class="fas fa-mountain"></i> Гвоздестойцы 5+</h1>
+            <p class="tagline">Каждый день +5 секунд к твоей цели!</p>
+        </header>
+
+        <main class="main-content">
+            <div class="rules">
+                <h2><i class="fas fa-book"></i> Правила челленджа:</h2>
+                <ul>
+                    <li><i class="fas fa-plus"></i> Начинаем с 40 секунд в день</li>
+                    <li><i class="fas fa-arrow-up"></i> Каждый день цель увеличивается на 5 секунд</li>
+                    <li><i class="fas fa-check-double"></i> Можно стоять 2 раза в день</li>
+                    <li><i class="fas fa-fire"></i> Не пропускай дни - поддерживай серию!</li>
+                </ul>
+            </div>
+
+            <div class="user-selection">
+                <h2><i class="fas fa-user-friends"></i> Кто вы сегодня?</h2>
+                <p class="hint">Выберите свой профиль чтобы отметить прогресс</p>
+                
+                <div class="users-grid">
+                    <div class="user-card" data-user="1" data-color="#3498db">
+                        <div class="user-avatar" style="background-color: #3498db;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h3>Илья</h3>
+                        <p>Начни свой путь к 5 минутам!</p>
+                        <button class="select-btn" onclick="selectUser('Илья', '1')">
+                            Выбрать <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="user-card" data-user="2" data-color="#2ecc71">
+                        <div class="user-avatar" style="background-color: #2ecc71;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h3>Полина</h3>
+                        <p>Покажи свою силу воли!</p>
+                        <button class="select-btn" onclick="selectUser('Полина', '2')">
+                            Выбрать <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <div class="user-card" data-user="3" data-color="#e74c3c">
+                        <div class="user-avatar" style="background-color: #e74c3c;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <h3>Лиза</h3>
+                        <p>Покоряй новые вершины!</p>
+                        <button class="select-btn" onclick="selectUser('Лиза', '3')">
+                            Выбрать <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="stats-preview">
+                <h2><i class="fas fa-chart-line"></i> Общая статистика:</h2>
+                <div class="stats-grid" id="statsContainer">
+                    <!-- Статистика загрузится через JavaScript -->
+                    <p class="loading">Загрузка статистики...</p>
+                </div>
+            </div>
+        </main>
+
+        <footer class="footer">
+            <p>Гвоздестойцы 5+ &copy; 2023 | Сила воли +5 секунд каждый день</p>
+        </footer>
+    </div>
+
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <script src="supabase.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
+Файл 2: supabase.js (Настройка клиента)
+javascript
+// Замените эти значения на свои из Supabase
+const SUPABASE_URL = 'https://ВАШ_PROJECT_ID.supabase.co'; // Ваш Project URL
+const SUPABASE_ANON_KEY = 'ВАШ_ANON_KEY'; // Ваш anon public key
+
+// Создаем клиент Supabase
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Экспортируем для использования в других файлах
+window.supabaseClient = supabase;

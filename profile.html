@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой прогресс - Гвоздестойцы 5+</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Шапка профиля */
+        .profile-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px 30px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+        
+        .back-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        #userGreeting {
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        /* Основной контент */
+        .profile-content {
+            padding: 30px;
+        }
+        
+        /* Карточка цели */
+        .goal-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+        
+        .goal-header {
+            margin-bottom: 20px;
+        }
+        
+        .goal-header h2 {
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        
+        .date {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+        
+        .goal-display {
+            margin: 15px 0;
+        }
+        
+        .goal-time {
+            font-size: 48px;
+            font-weight: bold;
+        }
+        
+        .goal-label {
+            font-size: 16px;
+            opacity: 0.9;
+        }
+        
+        .goal-info {
+            font-size: 14px;
+            opacity: 0.9;
+            margin-top: 10px;
+        }
+        
+        /* Блок прогресса */
+        .progress-section {
+            margin-bottom: 25px;
+        }
+        
+        .progress-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .progress-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .progress-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .progress-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            margin: 0 auto 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: white;
+        }
+        
+        .progress-info h3 {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+        
+        .progress-value {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        /* Общая статистика участников */
+        .team-stats-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .team-stats-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .team-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+        
+        .team-member-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s;
+        }
+        
+        .team-member-card:hover {
+            transform: translateY(-3px);
+        }
+        
+        .team-member-card.current-user {
+            border: 2px solid #667eea;
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        }
+        
+        .member-avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .member-name {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
+        .member-stats {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        .member-sessions {
+            margin-top: 15px;
+        }
+        
+        .session-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin: 0 2px;
+            background: #ddd;
+            border: 1px solid #bbb;
+        }
+        
+        .session-indicator.active {
+            background: #4CAF50;
+            border-color: #388E3C;
+        }
+        
+        .session-indicator.inactive {
+            background: #ff6b6b;
+            border-color: #ff5252;
+        }
+        
+        .today-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        /* Блок сессий */
+        .session-section {
+            background: #f8f9fa;
+            padding: 25px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .session-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .session-status {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .session-status p {
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+        
+        .session-bubbles {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .bubble {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #ddd;
+            border: 2px solid #bbb;
+        }
+        
+        .bubble.active {
+            background: #4CAF50;
+            border-color: #388E3C;
+        }
+        
+        .session-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+        
+        .session-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-weight: 500;
+        }
+        
+        #markSessionBtn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        #markSessionBtn:hover:not(:disabled) {
+            background: #45a049;
+        }
+        
+        #markSessionBtn:disabled {
+            background: #cccccc;
+            cursor: not-allowed;
+        }
+        
+        #undoSessionBtn {
+            background: #f0f0f0;
+            color: #666;
+        }
+        
+        #undoSessionBtn:hover:not(:disabled) {
+            background: #e0e0e0;
+        }
+        
+        #undoSessionBtn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .session-note {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        
+        /* Секундомер */
+        .stopwatch-section {
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin-bottom: 25px;
+        }
+        
+        .stopwatch-section h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+        
+        .stopwatch-display {
+            font-size: 48px;
+            font-weight: bold;
+            text-align: center;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            color: #333;
+        }
+        
+        .stopwatch-controls {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .stopwatch-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        #startBtn {
+            background: #2196F3;
+            color: white;
+        }
+        
+        #pauseBtn {
+            background: #FF9800;
+            color: white;
+        }
+        
+        #resetBtn {
+            background: #757575;
+            color: white;
+        }
+        
+        #saveBtn {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .stopwatch-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .stopwatch-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .stopwatch-note {
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+        }
+        
+        /* Футер */
+        .profile-footer {
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .refresh-btn:hover {
+            background: #5a67d8;
+        }
+        
+        /* Адаптивность */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .profile-header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+            
+            .progress-grid,
+            .team-stats-grid {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+            
+            .session-buttons {
+                grid-template-columns: 1fr;
+            }
+            
+            .stopwatch-controls {
+                grid-template-columns: repeat(2, 1fr);
+            }
+            
+            .profile-footer {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="profile-header">
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> Назад
+            </a>
+            <h1 id="userGreeting">Загрузка...</h1>
+        </header>
+
+        <main class="profile-content">
+            <!-- Карточка цели -->
+            <div class="goal-card">
+                <div class="goal-header">
+                    <h2><i class="fas fa-flag-checkered"></i> Задание на сегодня</h2>
+                    <div class="date" id="currentDate"></div>
+                </div>
+                <div class="goal-display">
+                    <div class="goal-time" id="dailyGoal">40</div>
+                    <div class="goal-label">секунд</div>
+                </div>
+                <div class="goal-info">
+                    <p><i class="fas fa-info-circle"></i> Завтра цель: <span id="tomorrowGoal">45</span> сек</p>
+                </div>
+            </div>
+
+            <!-- Блок прогресса -->
+            <div class="progress-section">
+                <h2><i class="fas fa-chart-line"></i> Мой прогресс</h2>
+                <div class="progress-grid">
+                    <div class="progress-card">
+                        <div class="progress-icon" style="background: #3498db;">
+                            <i class="fas fa-fire"></i>
+                        </div>
+                        <div class="progress-info">
+                            <h3>Серия дней</h3>
+                            <div class="progress-value" id="streakDays">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-card">
+                        <div class="progress-icon" style="background: #2ecc71;">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="progress-info">
+                            <h3>Всего дней</h3>
+                            <div class="progress-value" id="totalDays">0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="progress-card">
+                        <div class="progress-icon" style="background: #e74c3c;">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="progress-info">
+                            <h3>Рекорд</h3>
+                            <div class="progress-value" id="recordTime">0 сек</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Статистика команды -->
+            <div class="team-stats-section">
+                <h2><i class="fas fa-users"></i> Статистика команды</h2>
+                <div class="team-stats-grid" id="teamStats">
+                    <!-- Заполнится JavaScript -->
+                </div>
+            </div>
+
+            <!-- Блок отметки сессии -->
+            <div class="session-section">
+                <h2><i class="fas fa-check-circle"></i> Отметить сессию</h2>
+                <div class="session-status">
+                    <p>Сегодня отмечено: <span id="sessionsToday">0</span> из 2 сессий</p>
+                    <div class="session-bubbles">
+                        <div class="bubble" id="bubble1"></div>
+                        <div class="bubble" id="bubble2"></div>
+                    </div>
+                </div>
+                
+                <div class="session-buttons">
+                    <button class="session-btn" id="markSessionBtn">
+                        <i class="fas fa-check"></i> Отметить сессию
+                    </button>
+                    <button class="session-btn" id="undoSessionBtn">
+                        <i class="fas fa-undo"></i> Отменить
+                    </button>
+                </div>
+                
+                <p class="session-note">
+                    <i class="fas fa-lightbulb"></i> 
+                    После 2 сессий завтрашняя цель увеличится на 5 секунд
+                </p>
+            </div>
+
+            <!-- Секундомер -->
+            <div class="stopwatch-section">
+                <h2><i class="fas fa-stopwatch"></i> Тренировочный секундомер</h2>
+                <div class="stopwatch-display">
+                    <div id="stopwatch">00:00</div>
+                </div>
+                <div class="stopwatch-controls">
+                    <button class="stopwatch-btn" id="startBtn">
+                        <i class="fas fa-play"></i> Старт
+                    </button>
+                    <button class="stopwatch-btn" id="pauseBtn">
+                        <i class="fas fa-pause"></i> Пауза
+                    </button>
+                    <button class="stopwatch-btn" id="resetBtn">
+                        <i class="fas fa-redo"></i> Сброс
+                    </button>
+                    <button class="stopwatch-btn" id="saveBtn">
+                        <i class="fas fa-save"></i> Сохранить
+                    </button>
+                </div>
+                <p class="stopwatch-note">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    Нажмите "Сохранить" чтобы записать результат
+                </p>
+            </div>
+        </main>
+
+        <footer class="profile-footer">
+            <p>Обновлено: <span id="lastUpdate">только что</span></p>
+            <button class="refresh-btn" id="refreshBtn">
+                <i class="fas fa-sync-alt"></i> Обновить
+            </button>
+        </footer>
+    </div>
+
+    <script>
+    // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
+    let currentUserId = null;
+    let currentUserName = null;
+    let currentGoal = 40;
+    let currentStreak = 0;
+    let currentTotalDays = 0;
+    let stopwatchInterval = null;
+    let stopwatchTime = 0;
+    let stopwatchRunning = false;
+    
+    // Данные всех пользователей
+    const ALL_USERS = [
+        { id: '1', name: 'Илья', color: '#3498db' },
+        { id: '2', name: 'Полина', color: '#2ecc71' },
+        { id: '3', name: 'Лиза', color: '#e74c3c' }
+    ];
+    
+    // ========== ОСНОВНАЯ ФУНКЦИЯ ЗАГРУЗКИ ==========
+    
+    function loadProfileData() {
+        // Получаем ID пользователя из URL
+        const urlParams = new URLSearchParams(window.location.search);
+        currentUserId = urlParams.get('user');
+        
+        if (!currentUserId) {
+            alert('Пользователь не выбран!');
+            window.location.href = 'index.html';
+            return;
+        }
+        
+        // Устанавливаем имя пользователя
+        const userNames = {
+            '1': 'Илья',
+            '2': 'Полина',
+            '3': 'Лиза'
+        };
+        
+        currentUserName = userNames[currentUserId] || 'Пользователь';
+        document.getElementById('userGreeting').textContent = `Привет, ${currentUserName}!`;
+        
+        // Устанавливаем дату
+        const today = new Date();
+        document.getElementById('currentDate').textContent = today.toLocaleDateString('ru-RU', {
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+        
+        // Загружаем данные из localStorage
+        loadFromLocalStorage();
+        
+        // Загружаем сессии за сегодня
+        loadTodaySessions();
+        
+        // Загружаем статистику команды
+        loadTeamStats();
+        
+        // Обновляем время
+        updateLastUpdateTime();
+        
+        console.log('Профиль загружен для:', currentUserName);
+    }
+    
+    // ========== СТАТИСТИКА КОМАНДЫ ==========
+    
+    function loadTeamStats() {
+        const teamStatsContainer = document.getElementById('teamStats');
+        const today = new Date().toISOString().split('T')[0];
+        
+        let teamStatsHTML = '';
+        
+        ALL_USERS.forEach(user => {
+            // Загружаем профиль пользователя
+            const profileKey = `profile_${user.id}`;
+            const savedProfile = localStorage.getItem(profileKey);
+            
+            let userGoal = 40;
+            let userStreak = 0;
+            let userTotalDays = 0;
+            
+            if (savedProfile) {
+                try {
+                    const profile = JSON.parse(savedProfile);
+                    userGoal = profile.goal || 40;
+                    userStreak = profile.streak || 0;
+                    userTotalDays = profile.totalDays || 0;
+                } catch (e) {
+                    console.error('Ошибка загрузки профиля для', user.name, e);
+                }
+            }
+            
+            // Загружаем сессии за сегодня
+            const sessionsKey = `sessions_${user.id}_${today}`;
+            const savedSessions = localStorage.getItem(sessionsKey);
+            
+            let todaySessions = 0;
+            if (savedSessions) {
+                try {
+                    const sessions = JSON.parse(savedSessions);
+                    todaySessions = sessions.count || 0;
+                } catch (e) {
+                    console.error('Ошибка загрузки сессий для', user.name, e);
+                }
+            }
+            
+            // Определяем статус сессий
+            const session1Status = todaySessions >= 1 ? 'active' : 'inactive';
+            const session2Status = todaySessions >= 2 ? 'active' : 'inactive';
+            
+            // Создаем карточку пользователя
+            const isCurrentUser = user.id === currentUserId;
+            
+            teamStatsHTML += `
+                <div class="team-member-card ${isCurrentUser ? 'current-user' : ''}">
+                    <div class="member-avatar" style="background: ${user.color};">
+                        ${user.name.charAt(0)}
+                    </div>
+                    <div class="member-name">${user.name}</div>
+                    <div class="member-stats">
+                        <div>Цель: ${userGoal} сек</div>
+                        <div>Серия: ${userStreak} дн.</div>
+                    </div>
+                    <div class="member-sessions">
+                        <div>
+                            <span class="session-indicator ${session1Status}"></span>
+                            <span class="session-indicator ${session2Status}"></span>
+                        </div>
+                        <div class="today-label">
+                            ${todaySessions === 0 ? 'Не начинал(а)' : 
+                              todaySessions === 1 ? '1 сессия' : 
+                              '2 сессии ✅'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        teamStatsContainer.innerHTML = teamStatsHTML;
+    }
+    
+    // ========== РАБОТА С СЕССИЯМИ ==========
+    
+    function loadTodaySessions() {
+        const today = new Date().toISOString().split('T')[0];
+        const storageKey = `sessions_${currentUserId}_${today}`;
+        const savedData = localStorage.getItem(storageKey);
+        
+        let sessionCount = 0;
+        
+        if (savedData) {
+            try {
+                const data = JSON.parse(savedData);
+                sessionCount = data.count || 0;
+            } catch (e) {
+                console.error('Ошибка загрузки сессий:', e);
+            }
+        }
+        
+        updateSessionDisplay(sessionCount);
+        return sessionCount;
+    }
+    
+    function updateSessionDisplay(sessionCount) {
+        // Обновляем счетчик
+        document.getElementById('sessionsToday').textContent = sessionCount;
+        
+        // Обновляем пузырьки
+        document.getElementById('bubble1').classList.toggle('active', sessionCount >= 1);
+        document.getElementById('bubble2').classList.toggle('active', sessionCount >= 2);
+        
+        // Обновляем кнопки
+        const markBtn = document.getElementById('markSessionBtn');
+        const undoBtn = document.getElementById('undoSessionBtn');
+        
+        markBtn.disabled = sessionCount >= 2;
+        markBtn.innerHTML = sessionCount >= 2 
+            ? '<i class="fas fa-check-double"></i> Лимит' 
+            : '<i class="fas fa-check"></i> Отметить сессию';
+            
+        undoBtn.disabled = sessionCount === 0;
+    }
+    
+    // ФУНКЦИЯ ОТМЕТКИ СЕССИИ
+    function markSession() {
+        // Получаем текущее количество сессий
+        let currentCount = parseInt(document.getElementById('sessionsToday').textContent);
+        
+        if (currentCount >= 2) {
+            alert('Вы уже отметили 2 сессии сегодня!');
+            return;
+        }
+        
+        // Увеличиваем счетчик
+        const newCount = currentCount + 1;
+        const today = new Date().toISOString().split('T')[0];
+        
+        // Сохраняем в localStorage
+        const storageKey = `sessions_${currentUserId}_${today}`;
+        localStorage.setItem(storageKey, JSON.stringify({
+            date: today,
+            count: newCount,
+            timestamp: new Date().toISOString()
+        }));
+        
+        // Обновляем отображение
+        updateSessionDisplay(newCount);
+        
+        // Обновляем статистику команды
+        loadTeamStats();
+        
+        // Если это вторая сессия - увеличиваем цель
+        if (newCount === 2) {
+            increaseDailyGoal();
+            alert('🎉 Вы выполнили 2 сессии сегодня!\n\n📈 Завтрашняя цель увеличена на 5 секунд!');
+        } else {
+            alert(`✅ Сессия ${newCount}/2 отмечена!\n\n👉 Выполните вторую сессию для увеличения цели.`);
+        }
+        
+        updateLastUpdateTime();
+    }
+    
+    // Отмена сессии
+    function undoSession() {
+        let currentCount = parseInt(document.getElementById('sessionsToday').textContent);
+        
+        if (currentCount <= 0) {
+            alert('Нет сессий для отмены');
+            return;
+        }
+        
+        const newCount = currentCount - 1;
+        const today = new Date().toISOString().split('T')[0];
+        const storageKey = `sessions_${currentUserId}_${today}`;
+        
+        if (newCount === 0) {
+            localStorage.removeItem(storageKey);
+        } else {
+            localStorage.setItem(storageKey, JSON.stringify({
+                date: today,
+                count: newCount,
+                timestamp: new Date().toISOString()
+            }));
+        }
+        
+        // Обновляем статистику команды
+        loadTeamStats();
+        
+        // Если отменяем вторую сессию - уменьшаем цель
+        if (currentCount === 2) {
+            decreaseDailyGoal();
+        }
+        
+        updateSessionDisplay(newCount);
+        alert('Сессия отменена');
+        
+        updateLastUpdateTime();
+    }
+    
+    // ========== РАБОТА С ПРОФИЛЕМ ==========
+    
+    function loadFromLocalStorage() {
+        const profileKey = `profile_${currentUserId}`;
+        const savedProfile = localStorage.getItem(profileKey);
+        
+        if (savedProfile) {
+            try {
+                const profile = JSON.parse(savedProfile);
+                currentGoal = profile.goal || 40;
+                currentStreak = profile.streak || 0;
+                currentTotalDays = profile.totalDays || 0;
+            } catch (e) {
+                console.error('Ошибка загрузки профиля:', e);
+            }
+        }
+        
+        // Обновляем интерфейс
+        document.getElementById('dailyGoal').textContent = currentGoal;
+        document.getElementById('tomorrowGoal').textContent = currentGoal + 5;
+        document.getElementById('streakDays').textContent = currentStreak;
+        document.getElementById('totalDays').textContent = currentTotalDays;
+        
+        // Загружаем рекорд
+        const record = localStorage.getItem(`record_${currentUserId}`);
+        if (record) {
+            document.getElementById('recordTime').textContent = `${record} сек`;
+        }
+    }
+    
+    function saveProfile() {
+        const profileKey = `profile_${currentUserId}`;
+        localStorage.setItem(profileKey, JSON.stringify({
+            goal: currentGoal,
+            streak: currentStreak,
+            totalDays: currentTotalDays,
+            lastUpdate: new Date().toISOString()
+        }));
+    }
+    
+    function increaseDailyGoal() {
+        currentGoal += 5;
+        currentStreak += 1;
+        currentTotalDays += 1;
+        
+        document.getElementById('dailyGoal').textContent = currentGoal;
+        document.getElementById('tomorrowGoal').textContent = currentGoal + 5;
+        document.getElementById('streakDays').textContent = currentStreak;
+        document.getElementById('totalDays').textContent = currentTotalDays;
+        
+        saveProfile();
+        
+        // Обновляем статистику команды
+        loadTeamStats();
+    }
+    
+    function decreaseDailyGoal() {
+        currentGoal = Math.max(40, currentGoal - 5);
+        currentStreak = Math.max(0, currentStreak - 1);
+        
+        document.getElementById('dailyGoal').textContent = currentGoal;
+        document.getElementById('tomorrowGoal').textContent = currentGoal + 5;
+        document.getElementById('streakDays').textContent = currentStreak;
+        
+        saveProfile();
+        
+        // Обновляем статистику команды
+        loadTeamStats();
+    }
+    
+    // ========== СЕКУНДОМЕР ==========
+    
+    function startStopwatch() {
+        if (!stopwatchRunning) {
+            stopwatchRunning = true;
+            document.getElementById('startBtn').disabled = true;
+            document.getElementById('pauseBtn').disabled = false;
+            
+            stopwatchInterval = setInterval(() => {
+                stopwatchTime++;
+                updateStopwatchDisplay();
+            }, 1000);
+        }
+    }
+    
+    function pauseStopwatch() {
+        if (stopwatchRunning) {
+            stopwatchRunning = false;
+            clearInterval(stopwatchInterval);
+            document.getElementById('startBtn').disabled = false;
+            document.getElementById('pauseBtn').disabled = true;
+        }
+    }
+    
+    function resetStopwatch() {
+        pauseStopwatch();
+        stopwatchTime = 0;
+        updateStopwatchDisplay();
+    }
+    
+    function updateStopwatchDisplay() {
+        const minutes = Math.floor(stopwatchTime / 60);
+        const seconds = stopwatchTime % 60;
+        document.getElementById('stopwatch').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+    
+    function saveStopwatchTime() {
+        if (stopwatchTime === 0) {
+            alert('Секундомер показывает 0 секунд. Запустите его сначала.');
+            return;
+        }
+        
+        if (confirm(`Сохранить результат ${stopwatchTime} секунд как рекорд?`)) {
+            localStorage.setItem(`record_${currentUserId}`, stopwatchTime.toString());
+            document.getElementById('recordTime').textContent = `${stopwatchTime} сек`;
+            resetStopwatch();
+            alert(`Рекорд ${stopwatchTime} секунд сохранен!`);
+            updateLastUpdateTime();
+        }
+    }
+    
+    // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
+    
+    function updateLastUpdateTime() {
+        const now = new Date();
+        document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('ru-RU');
+    }
+    
+    // ========== ИНИЦИАЛИЗАЦИЯ ==========
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Загружаем данные профиля
+        loadProfileData();
+        
+        // Назначаем обработчики для кнопок
+        document.getElementById('markSessionBtn').addEventListener('click', markSession);
+        document.getElementById('undoSessionBtn').addEventListener('click', undoSession);
+        
+        // Секундомер
+        document.getElementById('startBtn').addEventListener('click', startStopwatch);
+        document.getElementById('pauseBtn').addEventListener('click', pauseStopwatch);
+        document.getElementById('resetBtn').addEventListener('click', resetStopwatch);
+        document.getElementById('saveBtn').addEventListener('click', saveStopwatchTime);
+        
+        // Кнопка обновления
+        document.getElementById('refreshBtn').addEventListener('click', function() {
+            loadFromLocalStorage();
+            loadTodaySessions();
+            loadTeamStats();
+            updateLastUpdateTime();
+            alert('Данные обновлены!');
+        });
+        
+        // Отключаем кнопку паузы по умолчанию
+        document.getElementById('pauseBtn').disabled = true;
+    });
+    </script>
+</body>
+</html>
