@@ -1,3 +1,4 @@
+[file content begin]
 let currentUserId = null;
 let currentProfile = null;
 let stopwatchInterval = null;
@@ -31,6 +32,13 @@ async function loadProfileData() {
             alert('Профиль не найден!');
             window.location.href = 'index.html';
             return;
+        }
+        
+        // Проверяем корректность данных - ВСЕ должны начинать с 50
+        const initialGoal = 50;
+        if (parseInt(currentProfile.Цель_сегодня) !== initialGoal) {
+            console.log(`⚠️ Исправляем цель для ${currentProfile.Имя} с ${currentProfile.Цель_сегодня} на ${initialGoal}`);
+            currentProfile.Цель_сегодня = initialGoal.toString();
         }
         
         // Обновляем данные на странице
@@ -84,29 +92,13 @@ async function loadTodaySessions() {
         }
         
         // Обновляем отображение сессий
-        document.getElementById('sessionsToday').textContent = sessionCount;
-        
-        // Обновляем пузырьки сессий
-        const bubble1 = document.getElementById('bubble1');
-        const bubble2 = document.getElementById('bubble2');
-        
-        bubble1.classList.toggle('active', sessionCount >= 1);
-        bubble2.classList.toggle('active', sessionCount >= 2);
-        
-        // Отключаем кнопку если достигнут лимит
-        const markBtn = document.getElementById('markSessionBtn');
-        markBtn.disabled = sessionCount >= 2;
-        markBtn.innerHTML = sessionCount >= 2 
-            ? '<i class="fas fa-check-double"></i> Лимит достигнут' 
-            : '<i class="fas fa-check"></i> Отметить сессию';
-            
-        // Обновляем кнопку отмены
-        document.getElementById('undoSessionBtn').disabled = sessionCount === 0;
+        updateSessionDisplay(sessionCount);
         
         return sessionCount;
         
     } catch (error) {
         console.error('Ошибка загрузки сессий:', error);
+        updateSessionDisplay(0);
         return 0;
     }
 }
@@ -126,32 +118,32 @@ async function markSession() {
         // Показываем подтверждение
         if (confirm(`Отметить ${newSessionCount}-ю сессию?\n\nПосле отметки второй сессии сегодня, завтра цель увеличится на 5 секунд.`)) {
             
-            // СИМУЛИРУЕМ увеличение цели при второй сессии
+            // ВТОРАЯ СЕССИЯ - НЕ УВЕЛИЧИВАЕМ СЕГОДНЯШНЮЮ ЦЕЛЬ!
+            // Увеличиваем ЗАВТРАШНЮЮ цель
             if (newSessionCount === 2) {
-                // Увеличиваем цель в "профиле"
-                const newGoal = parseInt(currentProfile.Цель_сегодня) + 5;
+                const tomorrowGoal = parseInt(currentProfile.Цель_сегодня) + 5;
                 const newStreak = parseInt(currentProfile.Серия_дней) + 1;
                 const newTotalDays = parseInt(currentProfile.Всего_дней) + 1;
                 
-                // Обновляем отображение
-                document.getElementById('dailyGoal').textContent = newGoal;
-                document.getElementById('tomorrowGoal').textContent = newGoal + 5;
+                // Обновляем отображение ЗАВТРАШНЕЙ цели
+                document.getElementById('tomorrowGoal').textContent = tomorrowGoal;
                 document.getElementById('streakDays').textContent = newStreak;
                 document.getElementById('totalDays').textContent = newTotalDays;
                 
                 // Обновляем "локальный профиль"
-                currentProfile.Цель_сегодня = newGoal.toString();
                 currentProfile.Серия_дней = newStreak.toString();
                 currentProfile.Всего_дней = newTotalDays.toString();
                 
-                // Сохраняем в localStorage (чтобы работало между вкладками)
-                saveToLocalStorage();
+                alert('🎉 Вы выполнили 2 сессии сегодня!\n📈 Завтрашняя цель увеличена на 5 секунд!');
+            } else {
+                alert(`✅ Сессия ${newSessionCount}/2 отмечена!\n👉 Выполните вторую сессию для увеличения завтрашней цели.`);
             }
             
             // Обновляем счетчик сессий
             updateSessionDisplay(newSessionCount);
             
-            alert(`Сессия ${newSessionCount}/2 отмечена! ${newSessionCount === 2 ? 'Завтрашняя цель увеличена!' : ''}`);
+            // Сохраняем в localStorage
+            saveToLocalStorage(newSessionCount);
         }
         
     } catch (error) {
@@ -174,23 +166,23 @@ async function undoSession() {
             
             const newSessionCount = sessionCount - 1;
             
-            // Если отменяем вторую сессию - уменьшаем цель
+            // Если отменяем вторую сессию - уменьшаем ЗАВТРАШНЮЮ цель
             if (sessionCount === 2) {
-                const newGoal = Math.max(40, parseInt(currentProfile.Цель_сегодня) - 5);
+                const tomorrowGoal = parseInt(currentProfile.Цель_сегодня); // Остается сегодняшняя цель
                 const newStreak = Math.max(0, parseInt(currentProfile.Серия_дней) - 1);
                 
-                document.getElementById('dailyGoal').textContent = newGoal;
-                document.getElementById('tomorrowGoal').textContent = newGoal + 5;
+                document.getElementById('tomorrowGoal').textContent = tomorrowGoal + 5;
                 document.getElementById('streakDays').textContent = newStreak;
                 
-                currentProfile.Цель_сегодня = newGoal.toString();
                 currentProfile.Серия_дней = newStreak.toString();
-                
-                saveToLocalStorage();
             }
             
             updateSessionDisplay(newSessionCount);
-            alert('Последняя сессия отменена');
+            
+            // Сохраняем в localStorage
+            saveToLocalStorage(newSessionCount);
+            
+            alert('↩️ Последняя сессия отменена');
         }
         
     } catch (error) {
@@ -213,26 +205,30 @@ function updateSessionDisplay(count) {
     markBtn.disabled = count >= 2;
     markBtn.innerHTML = count >= 2 
         ? '<i class="fas fa-check-double"></i> Лимит достигнут' 
-        : '<i class="fas fa-check"></i> Отметить сессию';
+        : `<i class="fas fa-check"></i> Отметить сессию (${count + 1}/2)`;
         
     document.getElementById('undoSessionBtn').disabled = count === 0;
 }
 
 // Сохранение данных в localStorage (для синхронизации между вкладками)
-function saveToLocalStorage() {
+function saveToLocalStorage(sessionCount) {
     const userData = {
         profile: currentProfile,
         lastUpdated: new Date().toISOString(),
         sessions: {
             date: new Date().toISOString().split('T')[0],
-            count: parseInt(document.getElementById('sessionsToday').textContent)
+            count: sessionCount
         }
     };
     
     localStorage.setItem(`user_${currentUserId}`, JSON.stringify(userData));
     
     // Обновляем время последнего обновления
-    document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString('ru-RU');
+    const now = new Date();
+    document.getElementById('lastUpdate').textContent = now.toLocaleTimeString('ru-RU', {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 // Проверка данных из localStorage при загрузке
@@ -240,31 +236,54 @@ function checkLocalStorage() {
     const storedData = localStorage.getItem(`user_${currentUserId}`);
     
     if (storedData) {
-        const data = JSON.parse(storedData);
-        const today = new Date().toISOString().split('T')[0];
-        
-        // Если данные за сегодня - обновляем счетчик
-        if (data.sessions && data.sessions.date === today) {
-            updateSessionDisplay(data.sessions.count);
-        }
-        
-        // Если профиль обновлялся недавно - обновляем данные
-        const lastUpdated = new Date(data.lastUpdated);
-        const now = new Date();
-        const diffHours = (now - lastUpdated) / (1000 * 60 * 60);
-        
-        if (diffHours < 24) { // В течение суток
-            document.getElementById('dailyGoal').textContent = data.profile.Цель_сегодня;
-            document.getElementById('tomorrowGoal').textContent = parseInt(data.profile.Цель_сегодня) + 5;
-            document.getElementById('streakDays').textContent = data.profile.Серия_дней;
-            document.getElementById('totalDays').textContent = data.profile.Всего_дней;
+        try {
+            const data = JSON.parse(storedData);
+            const today = new Date().toISOString().split('T')[0];
             
-            currentProfile = data.profile;
+            // Если данные за сегодня - обновляем счетчик сессий
+            if (data.sessions && data.sessions.date === today) {
+                updateSessionDisplay(data.sessions.count);
+            }
+            
+            // Если профиль обновлялся недавно - обновляем данные
+            const lastUpdated = new Date(data.lastUpdated);
+            const now = new Date();
+            const diffHours = (now - lastUpdated) / (1000 * 60 * 60);
+            
+            // Обновляем только серии и общие дни
+            if (diffHours < 24) {
+                document.getElementById('streakDays').textContent = data.profile.Серия_дней;
+                document.getElementById('totalDays').textContent = data.profile.Всего_дней;
+                
+                // Цель сегодня всегда берется из Google Sheets
+                // Завтрашняя цель = сегодняшняя + 5
+                const tomorrowGoal = parseInt(currentProfile.Цель_сегодня) + 5;
+                document.getElementById('tomorrowGoal').textContent = tomorrowGoal;
+            }
+        } catch (e) {
+            console.error('Ошибка при чтении localStorage:', e);
         }
     }
 }
 
-// Секундомер (остается без изменений)
+// Кнопка принудительного сброса цели к 50
+function resetGoalTo50() {
+    if (confirm('Сбросить цель к 50 секундам?\n\nЭто исправит проблему если у кого-то цель не 50.')) {
+        // Обновляем отображение
+        document.getElementById('dailyGoal').textContent = '50';
+        document.getElementById('tomorrowGoal').textContent = '55';
+        
+        // Обновляем локальный профиль
+        currentProfile.Цель_сегодня = '50';
+        
+        // Сохраняем в localStorage
+        saveToLocalStorage(parseInt(document.getElementById('sessionsToday').textContent));
+        
+        alert('✅ Цель сброшена к 50 секундам!');
+    }
+}
+
+// Секундомер
 function startStopwatch() {
     if (!stopwatchRunning) {
         stopwatchRunning = true;
@@ -308,7 +327,6 @@ function saveStopwatchTime() {
     
     if (confirm(`Сохранить результат ${stopwatchTime} секунд?`)) {
         // Сохраняем в localStorage
-        const today = new Date().toISOString().split('T')[0];
         const recordKey = `record_${currentUserId}`;
         
         localStorage.setItem(recordKey, stopwatchTime.toString());
@@ -319,7 +337,7 @@ function saveStopwatchTime() {
         // Сбрасываем секундомер
         resetStopwatch();
         
-        alert(`Результат ${stopwatchTime} секунд сохранен в вашем браузере!`);
+        alert(`🏆 Рекорд ${stopwatchTime} секунд сохранен!`);
     }
 }
 
@@ -327,4 +345,28 @@ function saveStopwatchTime() {
 document.addEventListener('DOMContentLoaded', async () => {
     await loadProfileData();
     checkLocalStorage();
+    
+    // Добавляем обработчики кнопок
+    document.getElementById('markSessionBtn').addEventListener('click', markSession);
+    document.getElementById('undoSessionBtn').addEventListener('click', undoSession);
+    document.getElementById('startBtn').addEventListener('click', startStopwatch);
+    document.getElementById('pauseBtn').addEventListener('click', pauseStopwatch);
+    document.getElementById('resetBtn').addEventListener('click', resetStopwatch);
+    document.getElementById('saveBtn').addEventListener('click', saveStopwatchTime);
+    document.getElementById('refreshBtn').addEventListener('click', async () => {
+        await loadProfileData();
+        checkLocalStorage();
+        alert('Данные обновлены!');
+    });
+    
+    // Добавляем скрытую кнопку для сброса цели (для отладки)
+    const resetBtn = document.createElement('button');
+    resetBtn.innerHTML = '<i class="fas fa-redo"></i> Сбросить цель к 50';
+    resetBtn.style = 'position: fixed; bottom: 10px; right: 10px; background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; z-index: 1000;';
+    resetBtn.onclick = resetGoalTo50;
+    document.body.appendChild(resetBtn);
+    
+    // Отключаем кнопку паузы по умолчанию
+    document.getElementById('pauseBtn').disabled = true;
 });
+[file content end]
