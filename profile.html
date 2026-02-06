@@ -79,6 +79,15 @@
             text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
         }
         
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+            opacity: 0.9;
+            z-index: 1;
+        }
+        
         /* Основной контент */
         .profile-content {
             padding: 30px;
@@ -253,6 +262,12 @@
             gap: 20px;
         }
         
+        @media (max-width: 768px) {
+            .team-stats-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         .team-member-card {
             background: white;
             padding: 20px;
@@ -347,6 +362,50 @@
             color: #666;
             margin-top: 8px;
             font-weight: 500;
+        }
+        
+        /* Лоадер */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .loading-overlay {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px;
+            gap: 15px;
+        }
+        
+        .error-card {
+            text-align: center;
+            padding: 30px;
+            border: 2px solid #e74c3c;
+            border-radius: 10px;
+            background: #fff5f5;
+        }
+        
+        .error-card i {
+            color: #e74c3c;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+        
+        .error-card p {
+            margin-bottom: 15px;
+            color: #333;
         }
         
         /* Блок сессий */
@@ -596,6 +655,14 @@
             align-items: center;
         }
         
+        @media (max-width: 768px) {
+            .profile-footer {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+        }
+        
         .refresh-btn {
             background: linear-gradient(135deg, #667eea 0%, #5a67d8 100%);
             color: white;
@@ -615,7 +682,15 @@
             transform: translateY(-2px);
         }
         
-        /* Уведомление о новом дне */
+        .refresh-btn.secondary {
+            background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        }
+        
+        .refresh-btn.secondary:hover {
+            background: linear-gradient(135deg, #2980b9 0%, #1f639e 100%);
+        }
+        
+        /* Уведомление */
         .notification {
             position: fixed;
             top: 20px;
@@ -665,8 +740,7 @@
                 text-align: center;
             }
             
-            .progress-grid,
-            .team-stats-grid {
+            .progress-grid {
                 grid-template-columns: 1fr;
                 gap: 12px;
             }
@@ -677,12 +751,6 @@
             
             .stopwatch-controls {
                 grid-template-columns: repeat(2, 1fr);
-            }
-            
-            .profile-footer {
-                flex-direction: column;
-                gap: 15px;
-                text-align: center;
             }
             
             .stopwatch-display {
@@ -704,27 +772,6 @@
                 font-size: 36px;
             }
         }
-        
-        /* Лоадер */
-        .loader {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .syncing {
-            opacity: 0.7;
-            pointer-events: none;
-        }
     </style>
 </head>
 <body>
@@ -734,8 +781,8 @@
                 <i class="fas fa-arrow-left"></i> Назад
             </a>
             <h1 id="userGreeting">Загрузка...</h1>
-            <div id="syncStatus" style="font-size: 12px; opacity: 0.8;">
-                <i class="fas fa-wifi"></i> <span>Синхронизация...</span>
+            <div class="status-indicator" id="statusIndicator">
+                <i class="fas fa-wifi"></i> <span>Подключение...</span>
             </div>
         </header>
 
@@ -795,10 +842,7 @@
             <div class="team-stats-section">
                 <h2><i class="fas fa-users"></i> Статистика команды</h2>
                 <div class="team-stats-grid" id="teamStats">
-                    <div class="team-member-card">
-                        <div class="loader"></div>
-                        <p>Загрузка данных...</p>
-                    </div>
+                    <!-- Заполнится JavaScript -->
                 </div>
             </div>
 
@@ -815,7 +859,7 @@
                 
                 <div class="session-buttons">
                     <button class="session-btn" id="markSessionBtn">
-                        <i class="fas fa-check"></i> <span>Отметить сессию</span>
+                        <i class="fas fa-check"></i> Отметить сессию
                     </button>
                     <button class="session-btn" id="undoSessionBtn">
                         <i class="fas fa-undo"></i> Отменить
@@ -858,11 +902,11 @@
         <footer class="profile-footer">
             <p>Обновлено: <span id="lastUpdate">только что</span></p>
             <div>
-                <button class="refresh-btn" id="refreshBtn">
-                    <i class="fas fa-sync-alt"></i> Обновить данные
+                <button class="refresh-btn" id="refreshAllBtn">
+                    <i class="fas fa-sync-alt"></i> Обновить все
                 </button>
-                <button class="refresh-btn" style="background: #2ecc71; margin-left: 10px;" id="syncBtn">
-                    <i class="fas fa-cloud-upload-alt"></i> Синхронизировать
+                <button class="refresh-btn secondary" id="refreshTeamBtn">
+                    <i class="fas fa-users"></i> Обновить команду
                 </button>
             </div>
         </footer>
@@ -877,16 +921,7 @@
         </div>
     </div>
 
-    <!-- Подключаем Google Sheets API -->
-    <script src="google-sheets.js"></script>
-    
     <script>
-    // ========== КОНФИГУРАЦИЯ ==========
-    const GOOGLE_SHEETS_CONFIG = {
-        SPREADSHEET_ID: '1-mUSmQdB9cQnuHioXZczfyvRZRjSy0HELDg7KImXs7g', // Замени на свой
-        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/YOUR_APPS_SCRIPT_ID/exec' // Замени на свой
-    };
-
     // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     let currentUserId = null;
     let currentUserName = null;
@@ -894,8 +929,17 @@
     let stopwatchInterval = null;
     let stopwatchTime = 0;
     let stopwatchRunning = false;
-    let isSyncing = false;
-
+    
+    // Конфигурация пользователей (резервная, если Google Sheets не доступен)
+    const USER_CONFIG = {
+        '1': { name: 'Илья', color: '#3498db' },
+        '2': { name: 'Полина', color: '#2ecc71' },
+        '3': { name: 'Лиза', color: '#e74c3c' }
+    };
+    
+    const INITIAL_GOAL = 50;
+    const GOAL_INCREMENT = 5;
+    
     // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
     
     function getUserIdFromUrl() {
@@ -944,123 +988,84 @@
         }, 5000);
     }
     
-    function setLoadingState(isLoading) {
-        isSyncing = isLoading;
-        const syncStatus = document.getElementById('syncStatus');
-        const markBtn = document.getElementById('markSessionBtn');
+    function setStatus(text, color = '#666') {
+        const statusEl = document.getElementById('statusIndicator');
+        statusEl.innerHTML = `<i class="fas fa-circle" style="color: ${color};"></i> <span>${text}</span>`;
+    }
+    
+    // ========== ОТОБРАЖЕНИЕ СТАТИСТИКИ КОМАНДЫ ==========
+    
+    function showTeamLoading() {
+        document.getElementById('teamStats').innerHTML = `
+            <div class="team-member-card loading-overlay" style="grid-column: 1 / -1;">
+                <div class="loader" style="width: 40px; height: 40px; border-width: 4px;"></div>
+                <p>Загружаем статистику команды...</p>
+            </div>
+        `;
+    }
+    
+    function showTeamError(message) {
+        document.getElementById('teamStats').innerHTML = `
+            <div class="team-member-card error-card" style="grid-column: 1 / -1;">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p>${message}</p>
+                <button class="refresh-btn" onclick="loadTeamStats()" 
+                        style="padding: 8px 15px; font-size: 14px;">
+                    <i class="fas fa-redo"></i> Повторить
+                </button>
+            </div>
+        `;
+    }
+    
+    function renderTeamStats(profiles, sessions) {
+        const today = getTodayDate();
+        let html = '';
         
-        if (isLoading) {
-            syncStatus.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Синхронизация...';
-            document.body.classList.add('syncing');
-        } else {
-            syncStatus.innerHTML = '<i class="fas fa-wifi"></i> Онлайн';
-            document.body.classList.remove('syncing');
-            if (markBtn) {
-                markBtn.disabled = false;
-            }
-        }
-    }
-    
-    // ========== GOOGLE SHEETS API ФУНКЦИИ ==========
-    
-    async function loadProfileFromGoogleSheets() {
-        try {
-            setLoadingState(true);
+        profiles.forEach(profile => {
+            const userId = profile.ID;
+            const userName = profile.Имя || USER_CONFIG[userId]?.name || 'Участник';
             
-            currentUserId = getUserIdFromUrl();
-            if (!currentUserId) {
-                window.location.href = 'index.html';
-                return;
-            }
-            
-            // 1. Загружаем профили
-            const profilesData = await GoogleSheets.readSheet('Профили');
-            const profiles = GoogleSheets.sheetToObjects(profilesData);
-            
-            // Находим текущий профиль
-            currentProfile = profiles.find(p => p.ID === currentUserId);
-            
-            if (!currentProfile) {
-                showNotification('Профиль не найден в Google Sheets!', true);
-                return;
-            }
-            
-            currentUserName = currentProfile.Имя;
-            
-            // 2. Обновляем интерфейс
-            document.getElementById('userGreeting').textContent = `Привет, ${currentUserName}!`;
-            document.getElementById('dailyGoal').textContent = currentProfile.Цель_сегодня || '50';
-            document.getElementById('tomorrowGoal').textContent = (parseInt(currentProfile.Цель_сегодня) || 50) + 5;
-            document.getElementById('streakDays').textContent = currentProfile.Серия_дней || '0';
-            document.getElementById('totalDays').textContent = currentProfile.Всего_дней || '0';
-            
-            // 3. Устанавливаем дату
-            const today = new Date();
-            document.getElementById('currentDate').textContent = today.toLocaleDateString('ru-RU', {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric'
-            });
-            
-            // 4. Загружаем сегодняшние сессии
-            await loadTodaySessionsFromGoogleSheets();
-            
-            // 5. Загружаем статистику команды
-            await loadTeamStatsFromGoogleSheets();
-            
-            // 6. Загружаем рекорд
-            const record = localStorage.getItem(`record_${currentUserId}`);
-            if (record) {
-                document.getElementById('recordTime').textContent = `${record} сек`;
-            }
-            
-            updateLastUpdateTime();
-            setLoadingState(false);
-            
-            console.log('Профиль загружен из Google Sheets:', currentProfile);
-            
-        } catch (error) {
-            console.error('Ошибка загрузки профиля:', error);
-            showNotification('Не удалось загрузить данные. Проверьте подключение к интернету.', true);
-            setLoadingState(false);
-            
-            // Fallback на локальные данные
-            loadFromLocalStorage();
-        }
-    }
-    
-    async function loadTodaySessionsFromGoogleSheets() {
-        try {
-            const today = getTodayDate();
-            const sessionsData = await GoogleSheets.readSheet('Сессии');
-            const sessions = GoogleSheets.sheetToObjects(sessionsData);
-            
-            // Фильтруем сессии за сегодня для текущего пользователя
-            const todaySessions = sessions.filter(s => 
-                s.ID_профиля === currentUserId && s.Дата === today
+            // Находим сессии за сегодня для этого пользователя
+            const userSessions = sessions.filter(s => 
+                s.ID_профиля === userId && s.Дата === today
             );
             
             let sessionCount = 0;
-            
-            if (todaySessions.length > 0) {
-                // Берем последнюю сессию (самую актуальную)
-                const lastSession = todaySessions[todaySessions.length - 1];
+            if (userSessions.length > 0) {
+                const lastSession = userSessions[userSessions.length - 1];
                 sessionCount = parseInt(lastSession.Кол_сессий) || 0;
             }
             
-            // Обновляем интерфейс
-            updateSessionDisplay(sessionCount);
+            const userColor = USER_CONFIG[userId]?.color || '#667eea';
+            const isCurrentUser = userId === currentUserId;
             
-            // Сохраняем в localStorage как кэш
-            localStorage.setItem(`sessions_cache_${currentUserId}_${today}`, 
-                JSON.stringify({ count: sessionCount, timestamp: new Date().toISOString() }));
-            
-            return sessionCount;
-            
-        } catch (error) {
-            console.error('Ошибка загрузки сессий:', error);
-            
-            // Fallback на кэш из localStorage
-            const today = getTodayDate();
-            const cached = localStorage.getItem(`sessions_cache
+            html += `
+                <div class="team-member-card ${isCurrentUser ? 'current-user' : ''}">
+                    <div class="member-avatar" style="background: ${userColor};">
+                        ${userName.charAt(0)}
+                    </div>
+                    <div class="member-name">${userName}</div>
+                    <div class="member-stats">
+                        <div>Цель: ${profile.Цель_сегодня || '50'} сек</div>
+                        <div>Серия: ${profile.Серия_дней || '0'} дн.</div>
+                        <div>Всего дней: ${profile.Всего_дней || '0'}</div>
+                    </div>
+                    <div class="member-sessions">
+                        <div>
+                            <span class="session-indicator ${sessionCount >= 1 ? 'active' : 'inactive'}"></span>
+                            <span class="session-indicator ${sessionCount >= 2 ? 'active' : 'inactive'}"></span>
+                        </div>
+                        <div class="today-label">
+                            ${sessionCount === 0 ? 'Не начинал(а)' : 
+                              sessionCount === 1 ? '1 сессия' : 
+                              '2 сессии ✅'}
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        document.getElementById('teamStats').innerHTML = html;
+    }
+    
+    // ========== ЗАГРУЗ
