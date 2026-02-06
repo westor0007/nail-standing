@@ -1,4 +1,3 @@
-html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -508,11 +507,11 @@ html
                     <div class="date" id="currentDate"></div>
                 </div>
                 <div class="goal-display">
-                    <div class="goal-time" id="dailyGoal">40</div>
+                    <div class="goal-time" id="dailyGoal">55</div>
                     <div class="goal-label">секунд</div>
                 </div>
                 <div class="goal-info">
-                    <p><i class="fas fa-info-circle"></i> Завтра цель: <span id="tomorrowGoal">45</span> сек</p>
+                    <p><i class="fas fa-info-circle"></i> Завтра цель: <span id="tomorrowGoal">60</span> сек</p>
                 </div>
             </div>
 
@@ -526,7 +525,7 @@ html
                         </div>
                         <div class="progress-info">
                             <h3>Серия дней</h3>
-                            <div class="progress-value" id="streakDays">0</div>
+                            <div class="progress-value" id="streakDays">3</div>
                         </div>
                     </div>
                     
@@ -536,7 +535,7 @@ html
                         </div>
                         <div class="progress-info">
                             <h3>Всего дней</h3>
-                            <div class="progress-value" id="totalDays">0</div>
+                            <div class="progress-value" id="totalDays">3</div>
                         </div>
                     </div>
                     
@@ -692,9 +691,17 @@ html
         const profileKey = `profile_${userId}`;
         const profile = JSON.parse(localStorage.getItem(profileKey) || '{}');
         
-        profile.goal = (profile.goal || 40) + 5;
-        profile.streak = (profile.streak || 0) + 1;
-        profile.totalDays = (profile.totalDays || 0) + 1;
+        // Если профиля нет, создаем с начальным значением 55
+        if (!profile.goal) {
+            profile.goal = 55;
+            profile.streak = 3;
+            profile.totalDays = 3;
+        } else {
+            profile.goal = profile.goal + 5;
+            profile.streak = (profile.streak || 0) + 1;
+            profile.totalDays = (profile.totalDays || 0) + 1;
+        }
+        
         profile.lastUpdated = new Date().toISOString();
         
         localStorage.setItem(profileKey, JSON.stringify(profile));
@@ -744,9 +751,9 @@ html
     // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     let currentUserId = null;
     let currentUserName = null;
-    let currentGoal = 40;
-    let currentStreak = 0;
-    let currentTotalDays = 0;
+    let currentGoal = 55; // ИЗМЕНЕНО: было 40, стало 55
+    let currentStreak = 3; // ИЗМЕНЕНО: было 0, стало 3
+    let currentTotalDays = 3; // ИЗМЕНЕНО: было 0, стало 3
     let stopwatchInterval = null;
     let stopwatchTime = 0;
     let stopwatchRunning = false;
@@ -841,16 +848,17 @@ html
             const profileKey = `profile_${user.id}`;
             const savedProfile = localStorage.getItem(profileKey);
             
-            let userGoal = 40;
-            let userStreak = 0;
-            let userTotalDays = 0;
+            // ИЗМЕНЕНО: начальные значения 55 секунд и 3 дня
+            let userGoal = 55;
+            let userStreak = 3;
+            let userTotalDays = 3;
             
             if (savedProfile) {
                 try {
                     const profile = JSON.parse(savedProfile);
-                    userGoal = profile.goal || 40;
-                    userStreak = profile.streak || 0;
-                    userTotalDays = profile.totalDays || 0;
+                    userGoal = profile.goal || 55; // ИЗМЕНЕНО: было 40, стало 55
+                    userStreak = profile.streak || 3; // ИЗМЕНЕНО: было 0, стало 3
+                    userTotalDays = profile.totalDays || 3; // ИЗМЕНЕНО: было 0, стало 3
                 } catch (e) {
                     console.error('Ошибка загрузки профиля для', user.name, e);
                 }
@@ -977,7 +985,7 @@ html
         
         // Если это вторая сессия - увеличиваем цель
         if (newCount === 2) {
-            increaseUserGoal(currentUserId); // Используем новую функцию
+            increaseUserGoal(currentUserId);
             alert('🎉 Вы выполнили 2 сессии сегодня!\n\n📈 Завтрашняя цель будет увеличена на 5 секунд!');
         } else {
             alert(`✅ Сессия ${newCount}/2 отмечена!\n\n👉 Выполните вторую сессию для увеличения цели.`);
@@ -1032,9 +1040,9 @@ html
         if (savedProfile) {
             try {
                 const profile = JSON.parse(savedProfile);
-                currentGoal = profile.goal || 40;
-                currentStreak = profile.streak || 0;
-                currentTotalDays = profile.totalDays || 0;
+                currentGoal = profile.goal || 55; // ИЗМЕНЕНО: было 40, стало 55
+                currentStreak = profile.streak || 3; // ИЗМЕНЕНО: было 0, стало 3
+                currentTotalDays = profile.totalDays || 3; // ИЗМЕНЕНО: было 0, стало 3
             } catch (e) {
                 console.error('Ошибка загрузки профиля:', e);
             }
@@ -1080,104 +1088,4 @@ html
     }
     
     function decreaseDailyGoal() {
-        currentGoal = Math.max(40, currentGoal - 5);
-        currentStreak = Math.max(0, currentStreak - 1);
-        
-        document.getElementById('dailyGoal').textContent = currentGoal;
-        document.getElementById('tomorrowGoal').textContent = currentGoal + 5;
-        document.getElementById('streakDays').textContent = currentStreak;
-        
-        saveProfile();
-        
-        // Обновляем статистику команды
-        loadTeamStats();
-    }
-    
-    // ========== СЕКУНДОМЕР ==========
-    
-    function startStopwatch() {
-        if (!stopwatchRunning) {
-            stopwatchRunning = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('pauseBtn').disabled = false;
-            
-            stopwatchInterval = setInterval(() => {
-                stopwatchTime++;
-                updateStopwatchDisplay();
-            }, 1000);
-        }
-    }
-    
-    function pauseStopwatch() {
-        if (stopwatchRunning) {
-            stopwatchRunning = false;
-            clearInterval(stopwatchInterval);
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('pauseBtn').disabled = true;
-        }
-    }
-    
-    function resetStopwatch() {
-        pauseStopwatch();
-        stopwatchTime = 0;
-        updateStopwatchDisplay();
-    }
-    
-    function updateStopwatchDisplay() {
-        const minutes = Math.floor(stopwatchTime / 60);
-        const seconds = stopwatchTime % 60;
-        document.getElementById('stopwatch').textContent = 
-            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-    }
-    
-    function saveStopwatchTime() {
-        if (stopwatchTime === 0) {
-            alert('Секундомер показывает 0 секунд. Запустите его сначала.');
-            return;
-        }
-        
-        if (confirm(`Сохранить результат ${stopwatchTime} секунд как рекорд?`)) {
-            localStorage.setItem(`record_${currentUserId}`, stopwatchTime.toString());
-            document.getElementById('recordTime').textContent = `${stopwatchTime} сек`;
-            resetStopwatch();
-            alert(`Рекорд ${stopwatchTime} секунд сохранен!`);
-            updateLastUpdateTime();
-        }
-    }
-    
-    // ========== ИНИЦИАЛИЗАЦИЯ ==========
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        // Загружаем данные профиля
-        loadProfileData();
-        
-        // Назначаем обработчики для кнопок
-        document.getElementById('markSessionBtn').addEventListener('click', markSession);
-        document.getElementById('undoSessionBtn').addEventListener('click', undoSession);
-        
-        // Секундомер
-        document.getElementById('startBtn').addEventListener('click', startStopwatch);
-        document.getElementById('pauseBtn').addEventListener('click', pauseStopwatch);
-        document.getElementById('resetBtn').addEventListener('click', resetStopwatch);
-        document.getElementById('saveBtn').addEventListener('click', saveStopwatchTime);
-        
-        // Кнопка обновления
-        document.getElementById('refreshBtn').addEventListener('click', function() {
-            loadFromLocalStorage();
-            loadTodaySessions();
-            loadTeamStats();
-            updateLastUpdateTime();
-            alert('Данные обновлены!');
-        });
-        
-        // Отключаем кнопку паузы по умолчанию
-        document.getElementById('pauseBtn').disabled = true;
-        
-        // Автоматическая проверка новых дней каждые 5 минут
-        setInterval(() => {
-            checkAndUpdateDailySystem();
-        }, 5 * 60 * 1000); // 5 минут
-    });
-    </script>
-</body>
-</html>
+        currentGoal = Math.max(55, current
