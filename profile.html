@@ -1,4 +1,3 @@
-html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -705,6 +704,27 @@ html
                 font-size: 36px;
             }
         }
+        
+        /* Лоадер */
+        .loader {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .syncing {
+            opacity: 0.7;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -714,6 +734,9 @@ html
                 <i class="fas fa-arrow-left"></i> Назад
             </a>
             <h1 id="userGreeting">Загрузка...</h1>
+            <div id="syncStatus" style="font-size: 12px; opacity: 0.8;">
+                <i class="fas fa-wifi"></i> <span>Синхронизация...</span>
+            </div>
         </header>
 
         <main class="profile-content">
@@ -772,7 +795,10 @@ html
             <div class="team-stats-section">
                 <h2><i class="fas fa-users"></i> Статистика команды</h2>
                 <div class="team-stats-grid" id="teamStats">
-                    <!-- Заполнится JavaScript -->
+                    <div class="team-member-card">
+                        <div class="loader"></div>
+                        <p>Загрузка данных...</p>
+                    </div>
                 </div>
             </div>
 
@@ -789,7 +815,7 @@ html
                 
                 <div class="session-buttons">
                     <button class="session-btn" id="markSessionBtn">
-                        <i class="fas fa-check"></i> Отметить сессию
+                        <i class="fas fa-check"></i> <span>Отметить сессию</span>
                     </button>
                     <button class="session-btn" id="undoSessionBtn">
                         <i class="fas fa-undo"></i> Отменить
@@ -831,64 +857,62 @@ html
 
         <footer class="profile-footer">
             <p>Обновлено: <span id="lastUpdate">только что</span></p>
-            <button class="refresh-btn" id="refreshBtn">
-                <i class="fas fa-sync-alt"></i> Обновить
-            </button>
+            <div>
+                <button class="refresh-btn" id="refreshBtn">
+                    <i class="fas fa-sync-alt"></i> Обновить данные
+                </button>
+                <button class="refresh-btn" style="background: #2ecc71; margin-left: 10px;" id="syncBtn">
+                    <i class="fas fa-cloud-upload-alt"></i> Синхронизировать
+                </button>
+            </div>
         </footer>
     </div>
 
     <div id="notification" class="notification" style="display: none;">
-        <h3><i class="fas fa-bell"></i> Новый день!</h3>
+        <h3><i class="fas fa-bell"></i> Уведомление</h3>
         <div class="notification-content" id="notificationContent"></div>
         <div class="notification-buttons">
-            <button class="session-btn" style="background: #667eea;" id="notificationOkBtn">ОК</button>
-            <button class="session-btn" style="background: #f0f0f0; color: #666;" id="notificationReloadBtn">Обновить страницу</button>
+            <button class="session-btn" style="background: #667eea; color: white;" id="notificationOkBtn">OK</button>
+            <button class="session-btn" style="background: #f0f0f0; color: #666;" id="notificationCloseBtn">Закрыть</button>
         </div>
     </div>
 
+    <!-- Подключаем Google Sheets API -->
+    <script src="google-sheets.js"></script>
+    
     <script>
+    // ========== КОНФИГУРАЦИЯ ==========
+    const GOOGLE_SHEETS_CONFIG = {
+        SPREADSHEET_ID: '1-mUSmQdB9cQnuHioXZczfyvRZRjSy0HELDg7KImXs7g', // Замени на свой
+        APPS_SCRIPT_URL: 'https://script.google.com/macros/s/YOUR_APPS_SCRIPT_ID/exec' // Замени на свой
+    };
+
     // ========== ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ==========
     let currentUserId = null;
     let currentUserName = null;
-    let currentGoal = 50; // Начальная цель - 50 секунд
-    let currentStreak = 0;
-    let currentTotalDays = 0;
+    let currentProfile = null;
     let stopwatchInterval = null;
     let stopwatchTime = 0;
     let stopwatchRunning = false;
-    
-    // Конфигурация пользователей
-    const USER_CONFIG = {
-        '1': { name: 'Илья', color: '#3498db' },
-        '2': { name: 'Полина', color: '#2ecc71' },
-        '3': { name: 'Лиза', color: '#e74c3c' }
-    };
-    
-    const INITIAL_GOAL = 50; // Начальная цель для всех пользователей
-    const GOAL_INCREMENT = 5; // Увеличение цели за 2 сессии
-    
+    let isSyncing = false;
+
     // ========== ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ==========
     
-    // Получить сегодняшнюю дату в формате YYYY-MM-DD
+    function getUserIdFromUrl() {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get('user');
+    }
+    
     function getTodayDate() {
         return new Date().toISOString().split('T')[0];
     }
     
-    // Получить вчерашнюю дату
-    function getYesterdayDate() {
-        const yesterday = new Date();
-        yesterday.setDate(yesterday.getDate() - 1);
-        return yesterday.toISOString().split('T')[0];
-    }
-    
-    // Форматировать время в MM:SS
     function formatTime(seconds) {
         const mins = Math.floor(seconds / 60);
         const secs = seconds % 60;
         return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     
-    // Обновление времени последнего обновления
     function updateLastUpdateTime() {
         const now = new Date();
         const timeString = now.toLocaleTimeString('ru-RU', { 
@@ -898,524 +922,145 @@ html
         document.getElementById('lastUpdate').textContent = timeString;
     }
     
-    // ========== СИСТЕМА АВТОМАТИЧЕСКОГО ОБНОВЛЕНИЯ ==========
-    
-    // Проверка и обновление системы при новом дне
-    function checkAndUpdateDailySystem() {
-        const today = getTodayDate();
-        const lastUpdate = localStorage.getItem('last_system_update');
-        
-        console.log('🔍 Проверка системы:', { today, lastUpdate });
-        
-        // Если это новый день
-        if (!lastUpdate || lastUpdate !== today) {
-            console.log('🔄 Новый день! Обновляем систему...');
-            
-            // Обновляем цели всех пользователей
-            updateAllUsersForNewDay();
-            
-            // Сохраняем дату обновления
-            localStorage.setItem('last_system_update', today);
-            
-            // Показываем уведомление (если это не первый запуск и есть текущий пользователь)
-            if (lastUpdate && currentUserId) {
-                setTimeout(() => showNewDayNotification(), 1000);
-            }
-            
-            return true;
-        }
-        
-        console.log('✅ Система актуальна');
-        return false;
-    }
-    
-    // Обновление всех пользователей при новом дне
-    function updateAllUsersForNewDay() {
-        const yesterday = getYesterdayDate();
-        
-        Object.keys(USER_CONFIG).forEach(userId => {
-            const sessionsKey = `sessions_${userId}_${yesterday}`;
-            const sessionsData = localStorage.getItem(sessionsKey);
-            
-            let completedSessions = 0;
-            
-            if (sessionsData) {
-                try {
-                    const sessions = JSON.parse(sessionsData);
-                    completedSessions = sessions.count || 0;
-                } catch (e) {
-                    console.error(`Ошибка загрузки сессий для пользователя ${userId}:`, e);
-                }
-            }
-            
-            const profileKey = `profile_${userId}`;
-            const profile = JSON.parse(localStorage.getItem(profileKey) || '{}');
-            
-            // Если выполнено 2 сессии - увеличиваем цель
-            if (completedSessions >= 2) {
-                console.log(`🎯 Пользователь ${USER_CONFIG[userId].name} выполнил 2 сессии вчера`);
-                profile.goal = (profile.goal || INITIAL_GOAL) + GOAL_INCREMENT;
-                profile.streak = (profile.streak || 0) + 1;
-                profile.totalDays = (profile.totalDays || 0) + 1;
-            } else {
-                // Если меньше 2 сессий - сбрасываем к начальному значению
-                console.log(`🔄 Пользователь ${USER_CONFIG[userId].name} выполнил ${completedSessions} сессий, сбрасываем цель`);
-                profile.goal = INITIAL_GOAL; // Всегда 50 секунд при сбросе
-                profile.streak = 0;
-            }
-            
-            profile.lastUpdated = new Date().toISOString();
-            localStorage.setItem(profileKey, JSON.stringify(profile));
-        });
-    }
-    
-    // Показать уведомление о новом дне
-    function showNewDayNotification() {
-        const yesterday = getYesterdayDate();
-        const sessionsKey = `sessions_${currentUserId}_${yesterday}`;
-        const sessionsData = localStorage.getItem(sessionsKey);
-        
-        let message = '🌅 Новый день начался!';
-        
-        if (sessionsData) {
-            try {
-                const sessions = JSON.parse(sessionsData);
-                if (sessions.count >= 2) {
-                    message = `🎉 Вчера вы выполнили 2 сессии!\n📈 Сегодняшняя цель увеличена на ${GOAL_INCREMENT} секунд!`;
-                } else if (sessions.count === 1) {
-                    message = '😔 Вчера была только 1 сессия\n➡️ Цель сброшена к начальному значению (50 секунд)';
-                } else {
-                    message = '⏸️ Вчера не было сессий\n➡️ Цель сброшена к начальному значению (50 секунд)';
-                }
-            } catch (e) {
-                console.error('Ошибка при формировании уведомления:', e);
-                message = '🌅 Новый день начался!\n🔄 Цели всех участников обновлены.';
-            }
-        }
-        
-        showNotification(message);
-    }
-    
-    // Показать красивое уведомление
-    function showNotification(message) {
+    function showNotification(message, isError = false) {
         const notification = document.getElementById('notification');
         const notificationContent = document.getElementById('notificationContent');
         
-        notificationContent.innerHTML = message.replace(/\n/g, '<br>');
+        notificationContent.innerHTML = message;
         notification.style.display = 'block';
         
-        // Автоматическое скрытие через 10 секунд
+        if (isError) {
+            notification.style.borderLeftColor = '#e74c3c';
+            document.querySelector('#notification h3').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Ошибка';
+        } else {
+            notification.style.borderLeftColor = '#667eea';
+            document.querySelector('#notification h3').innerHTML = '<i class="fas fa-bell"></i> Уведомление';
+        }
+        
         setTimeout(() => {
             if (notification.style.display !== 'none') {
                 notification.style.display = 'none';
             }
-        }, 10000);
+        }, 5000);
     }
     
-    // ========== ЗАГРУЗКА ДАННЫХ ПРОФИЛЯ ==========
-    
-    function loadProfileData() {
-        // Сначала проверяем и обновляем систему
-        checkAndUpdateDailySystem();
-        
-        // Получаем ID пользователя из URL
-        const urlParams = new URLSearchParams(window.location.search);
-        currentUserId = urlParams.get('user');
-        
-        if (!currentUserId) {
-            alert('Пользователь не выбран!');
-            window.location.href = 'index.html';
-            return;
-        }
-        
-        // Устанавливаем имя пользователя
-        currentUserName = USER_CONFIG[currentUserId]?.name || 'Пользователь';
-        document.getElementById('userGreeting').textContent = `Привет, ${currentUserName}!`;
-        
-        // Устанавливаем дату
-        const today = new Date();
-        document.getElementById('currentDate').textContent = today.toLocaleDateString('ru-RU', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-        
-        // Загружаем данные профиля
-        loadUserProfile();
-        
-        // Загружаем сессии за сегодня
-        loadTodaySessions();
-        
-        // Загружаем статистику команды
-        loadTeamStats();
-        
-        // Обновляем время
-        updateLastUpdateTime();
-        
-        console.log(`Профиль загружен для: ${currentUserName}`);
-    }
-    
-    // ========== РАБОТА С ПРОФИЛЕМ ==========
-    
-    function loadUserProfile() {
-        const profileKey = `profile_${currentUserId}`;
-        const savedProfile = localStorage.getItem(profileKey);
-        
-        if (savedProfile) {
-            try {
-                const profile = JSON.parse(savedProfile);
-                currentGoal = profile.goal || INITIAL_GOAL;
-                currentStreak = profile.streak || 0;
-                currentTotalDays = profile.totalDays || 0;
-            } catch (e) {
-                console.error('Ошибка загрузки профиля:', e);
-            }
-        } else {
-            // Создаем новый профиль с начальными значениями
-            const initialProfile = {
-                goal: INITIAL_GOAL,
-                streak: 0,
-                totalDays: 0,
-                lastUpdated: new Date().toISOString()
-            };
-            localStorage.setItem(profileKey, JSON.stringify(initialProfile));
-        }
-        
-        // Обновляем интерфейс
-        document.getElementById('dailyGoal').textContent = currentGoal;
-        document.getElementById('tomorrowGoal').textContent = currentGoal + GOAL_INCREMENT;
-        document.getElementById('streakDays').textContent = currentStreak;
-        document.getElementById('totalDays').textContent = currentTotalDays;
-        
-        // Загружаем рекорд
-        const record = localStorage.getItem(`record_${currentUserId}`);
-        if (record) {
-            document.getElementById('recordTime').textContent = `${record} сек`;
-        }
-    }
-    
-    function saveUserProfile() {
-        const profileKey = `profile_${currentUserId}`;
-        const profile = {
-            goal: currentGoal,
-            streak: currentStreak,
-            totalDays: currentTotalDays,
-            lastUpdated: new Date().toISOString()
-        };
-        localStorage.setItem(profileKey, JSON.stringify(profile));
-    }
-    
-    // ========== СТАТИСТИКА КОМАНДЫ ==========
-    
-    function loadTeamStats() {
-        const teamStatsContainer = document.getElementById('teamStats');
-        const today = getTodayDate();
-        
-        if (!teamStatsContainer) return;
-        
-        let teamStatsHTML = '';
-        
-        Object.keys(USER_CONFIG).forEach(userId => {
-            const user = USER_CONFIG[userId];
-            
-            // Загружаем профиль пользователя
-            const profileKey = `profile_${userId}`;
-            const savedProfile = localStorage.getItem(profileKey);
-            
-            let userGoal = INITIAL_GOAL;
-            let userStreak = 0;
-            let userTotalDays = 0;
-            
-            if (savedProfile) {
-                try {
-                    const profile = JSON.parse(savedProfile);
-                    userGoal = profile.goal || INITIAL_GOAL;
-                    userStreak = profile.streak || 0;
-                    userTotalDays = profile.totalDays || 0;
-                } catch (e) {
-                    console.error('Ошибка загрузки профиля для', user.name, e);
-                }
-            }
-            
-            // Загружаем сессии за сегодня
-            const sessionsKey = `sessions_${userId}_${today}`;
-            const savedSessions = localStorage.getItem(sessionsKey);
-            
-            let todaySessions = 0;
-            if (savedSessions) {
-                try {
-                    const sessions = JSON.parse(savedSessions);
-                    todaySessions = sessions.count || 0;
-                } catch (e) {
-                    console.error('Ошибка загрузки сессий для', user.name, e);
-                }
-            }
-            
-            // Определяем статус сессий
-            const session1Status = todaySessions >= 1 ? 'active' : 'inactive';
-            const session2Status = todaySessions >= 2 ? 'active' : 'inactive';
-            
-            // Создаем карточку пользователя
-            const isCurrentUser = userId === currentUserId;
-            
-            teamStatsHTML += `
-                <div class="team-member-card ${isCurrentUser ? 'current-user' : ''}">
-                    <div class="member-avatar" style="background: ${user.color};">
-                        ${user.name.charAt(0)}
-                    </div>
-                    <div class="member-name">${user.name}</div>
-                    <div class="member-stats">
-                        <div>Цель: ${userGoal} сек</div>
-                        <div>Серия: ${userStreak} дн.</div>
-                        <div>Всего дней: ${userTotalDays}</div>
-                    </div>
-                    <div class="member-sessions">
-                        <div>
-                            <span class="session-indicator ${session1Status}" title="Сессия 1"></span>
-                            <span class="session-indicator ${session2Status}" title="Сессия 2"></span>
-                        </div>
-                        <div class="today-label">
-                            ${todaySessions === 0 ? 'Не начинал(а)' : 
-                              todaySessions === 1 ? '1 сессия' : 
-                              '2 сессии ✅'}
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-        
-        teamStatsContainer.innerHTML = teamStatsHTML;
-    }
-    
-    // ========== РАБОТА С СЕССИЯМИ ==========
-    
-    function loadTodaySessions() {
-        const today = getTodayDate();
-        const storageKey = `sessions_${currentUserId}_${today}`;
-        const savedData = localStorage.getItem(storageKey);
-        
-        let sessionCount = 0;
-        
-        if (savedData) {
-            try {
-                const data = JSON.parse(savedData);
-                sessionCount = data.count || 0;
-            } catch (e) {
-                console.error('Ошибка загрузки сессий:', e);
-            }
-        }
-        
-        updateSessionDisplay(sessionCount);
-        return sessionCount;
-    }
-    
-    function updateSessionDisplay(sessionCount) {
-        // Обновляем счетчик
-        document.getElementById('sessionsToday').textContent = sessionCount;
-        
-        // Обновляем пузырьки
-        const bubble1 = document.getElementById('bubble1');
-        const bubble2 = document.getElementById('bubble2');
-        
-        if (bubble1) bubble1.classList.toggle('active', sessionCount >= 1);
-        if (bubble2) bubble2.classList.toggle('active', sessionCount >= 2);
-        
-        // Обновляем текст в пузырьках
-        if (bubble1) bubble1.textContent = sessionCount >= 1 ? '✓' : '1';
-        if (bubble2) bubble2.textContent = sessionCount >= 2 ? '✓' : '2';
-        
-        // Обновляем кнопки
+    function setLoadingState(isLoading) {
+        isSyncing = isLoading;
+        const syncStatus = document.getElementById('syncStatus');
         const markBtn = document.getElementById('markSessionBtn');
-        const undoBtn = document.getElementById('undoSessionBtn');
         
-        if (markBtn) {
-            markBtn.disabled = sessionCount >= 2;
-            markBtn.innerHTML = sessionCount >= 2 
-                ? '<i class="fas fa-check-double"></i> Лимит достигнут' 
-                : `<i class="fas fa-check"></i> Отметить сессию (${sessionCount + 1}/2)`;
-        }
-            
-        if (undoBtn) {
-            undoBtn.disabled = sessionCount === 0;
-        }
-    }
-    
-    // ФУНКЦИЯ ОТМЕТКИ СЕССИИ
-    function markSession() {
-        // Получаем текущее количество сессий
-        let currentCount = parseInt(document.getElementById('sessionsToday').textContent);
-        
-        if (currentCount >= 2) {
-            alert('🎉 Вы уже отметили 2 сессии сегодня!');
-            return;
-        }
-        
-        // Увеличиваем счетчик
-        const newCount = currentCount + 1;
-        const today = getTodayDate();
-        
-        // Сохраняем в localStorage
-        const storageKey = `sessions_${currentUserId}_${today}`;
-        const sessionData = {
-            date: today,
-            count: newCount,
-            timestamp: new Date().toISOString(),
-            user: currentUserName
-        };
-        
-        localStorage.setItem(storageKey, JSON.stringify(sessionData));
-        
-        // Обновляем отображение
-        updateSessionDisplay(newCount);
-        
-        // Обновляем статистику команды
-        loadTeamStats();
-        
-        // Показываем сообщение
-        if (newCount === 2) {
-            showNotification('🎉 Вы выполнили 2 сессии сегодня!\n\n📈 Завтрашняя цель будет увеличена на 5 секунд!');
+        if (isLoading) {
+            syncStatus.innerHTML = '<i class="fas fa-sync-alt fa-spin"></i> Синхронизация...';
+            document.body.classList.add('syncing');
         } else {
-            showNotification(`✅ Сессия ${newCount}/2 отмечена!\n\n👉 Выполните вторую сессию для увеличения цели.`);
+            syncStatus.innerHTML = '<i class="fas fa-wifi"></i> Онлайн';
+            document.body.classList.remove('syncing');
+            if (markBtn) {
+                markBtn.disabled = false;
+            }
         }
-        
-        updateLastUpdateTime();
     }
     
-    // Отмена сессии
-    function undoSession() {
-        let currentCount = parseInt(document.getElementById('sessionsToday').textContent);
-        
-        if (currentCount <= 0) {
-            alert('❌ Нет сессий для отмены');
-            return;
-        }
-        
-        const newCount = currentCount - 1;
-        const today = getTodayDate();
-        const storageKey = `sessions_${currentUserId}_${today}`;
-        
-        if (newCount === 0) {
-            localStorage.removeItem(storageKey);
-        } else {
-            localStorage.setItem(storageKey, JSON.stringify({
-                date: today,
-                count: newCount,
-                timestamp: new Date().toISOString(),
-                user: currentUserName
-            }));
-        }
-        
-        updateSessionDisplay(newCount);
-        loadTeamStats();
-        
-        showNotification('↩️ Последняя сессия отменена');
-        updateLastUpdateTime();
-    }
+    // ========== GOOGLE SHEETS API ФУНКЦИИ ==========
     
-    // ========== СЕКУНДОМЕР ==========
-    
-    function startStopwatch() {
-        if (!stopwatchRunning) {
-            stopwatchRunning = true;
-            document.getElementById('startBtn').disabled = true;
-            document.getElementById('pauseBtn').disabled = false;
+    async function loadProfileFromGoogleSheets() {
+        try {
+            setLoadingState(true);
             
-            stopwatchInterval = setInterval(() => {
-                stopwatchTime++;
-                updateStopwatchDisplay();
-            }, 1000);
-        }
-    }
-    
-    function pauseStopwatch() {
-        if (stopwatchRunning) {
-            stopwatchRunning = false;
-            clearInterval(stopwatchInterval);
-            document.getElementById('startBtn').disabled = false;
-            document.getElementById('pauseBtn').disabled = true;
-        }
-    }
-    
-    function resetStopwatch() {
-        pauseStopwatch();
-        stopwatchTime = 0;
-        updateStopwatchDisplay();
-    }
-    
-    function updateStopwatchDisplay() {
-        document.getElementById('stopwatch').textContent = formatTime(stopwatchTime);
-    }
-    
-    function saveStopwatchTime() {
-        if (stopwatchTime === 0) {
-            alert('⏱️ Секундомер показывает 0 секунд. Запустите его сначала.');
-            return;
-        }
-        
-        if (confirm(`Сохранить результат ${stopwatchTime} секунд как рекорд?`)) {
-            localStorage.setItem(`record_${currentUserId}`, stopwatchTime.toString());
-            document.getElementById('recordTime').textContent = `${stopwatchTime} сек`;
-            resetStopwatch();
-            showNotification(`🏆 Рекорд ${stopwatchTime} секунд сохранен!`);
+            currentUserId = getUserIdFromUrl();
+            if (!currentUserId) {
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // 1. Загружаем профили
+            const profilesData = await GoogleSheets.readSheet('Профили');
+            const profiles = GoogleSheets.sheetToObjects(profilesData);
+            
+            // Находим текущий профиль
+            currentProfile = profiles.find(p => p.ID === currentUserId);
+            
+            if (!currentProfile) {
+                showNotification('Профиль не найден в Google Sheets!', true);
+                return;
+            }
+            
+            currentUserName = currentProfile.Имя;
+            
+            // 2. Обновляем интерфейс
+            document.getElementById('userGreeting').textContent = `Привет, ${currentUserName}!`;
+            document.getElementById('dailyGoal').textContent = currentProfile.Цель_сегодня || '50';
+            document.getElementById('tomorrowGoal').textContent = (parseInt(currentProfile.Цель_сегодня) || 50) + 5;
+            document.getElementById('streakDays').textContent = currentProfile.Серия_дней || '0';
+            document.getElementById('totalDays').textContent = currentProfile.Всего_дней || '0';
+            
+            // 3. Устанавливаем дату
+            const today = new Date();
+            document.getElementById('currentDate').textContent = today.toLocaleDateString('ru-RU', {
+                weekday: 'long',
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+            });
+            
+            // 4. Загружаем сегодняшние сессии
+            await loadTodaySessionsFromGoogleSheets();
+            
+            // 5. Загружаем статистику команды
+            await loadTeamStatsFromGoogleSheets();
+            
+            // 6. Загружаем рекорд
+            const record = localStorage.getItem(`record_${currentUserId}`);
+            if (record) {
+                document.getElementById('recordTime').textContent = `${record} сек`;
+            }
+            
             updateLastUpdateTime();
+            setLoadingState(false);
+            
+            console.log('Профиль загружен из Google Sheets:', currentProfile);
+            
+        } catch (error) {
+            console.error('Ошибка загрузки профиля:', error);
+            showNotification('Не удалось загрузить данные. Проверьте подключение к интернету.', true);
+            setLoadingState(false);
+            
+            // Fallback на локальные данные
+            loadFromLocalStorage();
         }
     }
     
-    // ========== ИНИЦИАЛИЗАЦИЯ ==========
-    
-    document.addEventListener('DOMContentLoaded', function() {
-        // Загружаем данные профиля
-        loadProfileData();
-        
-        // Назначаем обработчики для кнопок сессий
-        document.getElementById('markSessionBtn').addEventListener('click', markSession);
-        document.getElementById('undoSessionBtn').addEventListener('click', undoSession);
-        
-        // Секундомер
-        document.getElementById('startBtn').addEventListener('click', startStopwatch);
-        document.getElementById('pauseBtn').addEventListener('click', pauseStopwatch);
-        document.getElementById('resetBtn').addEventListener('click', resetStopwatch);
-        document.getElementById('saveBtn').addEventListener('click', saveStopwatchTime);
-        
-        // Кнопка обновления
-        document.getElementById('refreshBtn').addEventListener('click', function() {
-            loadUserProfile();
-            loadTodaySessions();
-            loadTeamStats();
-            updateLastUpdateTime();
-            showNotification('🔄 Данные обновлены!');
-        });
-        
-        // Кнопки уведомлений
-        document.getElementById('notificationOkBtn').addEventListener('click', function() {
-            document.getElementById('notification').style.display = 'none';
-        });
-        
-        document.getElementById('notificationReloadBtn').addEventListener('click', function() {
-            location.reload();
-        });
-        
-        // Отключаем кнопку паузы по умолчанию
-        document.getElementById('pauseBtn').disabled = true;
-        
-        // Автоматическая проверка новых дней каждые 5 минут
-        setInterval(() => {
-            checkAndUpdateDailySystem();
-        }, 5 * 60 * 1000);
-        
-        // Автоматическое обновление времени каждую минуту
-        setInterval(updateLastUpdateTime, 60000);
-    });
-
-    // Закрытие уведомления при клике вне его
-    document.addEventListener('click', function(event) {
-        const notification = document.getElementById('notification');
-        if (notification.style.display === 'block' && 
-            !notification.contains(event.target)) {
-            notification.style.display = 'none';
-        }
-    });
-    </script>
-</body>
-</html>
+    async function loadTodaySessionsFromGoogleSheets() {
+        try {
+            const today = getTodayDate();
+            const sessionsData = await GoogleSheets.readSheet('Сессии');
+            const sessions = GoogleSheets.sheetToObjects(sessionsData);
+            
+            // Фильтруем сессии за сегодня для текущего пользователя
+            const todaySessions = sessions.filter(s => 
+                s.ID_профиля === currentUserId && s.Дата === today
+            );
+            
+            let sessionCount = 0;
+            
+            if (todaySessions.length > 0) {
+                // Берем последнюю сессию (самую актуальную)
+                const lastSession = todaySessions[todaySessions.length - 1];
+                sessionCount = parseInt(lastSession.Кол_сессий) || 0;
+            }
+            
+            // Обновляем интерфейс
+            updateSessionDisplay(sessionCount);
+            
+            // Сохраняем в localStorage как кэш
+            localStorage.setItem(`sessions_cache_${currentUserId}_${today}`, 
+                JSON.stringify({ count: sessionCount, timestamp: new Date().toISOString() }));
+            
+            return sessionCount;
+            
+        } catch (error) {
+            console.error('Ошибка загрузки сессий:', error);
+            
+            // Fallback на кэш из localStorage
+            const today = getTodayDate();
+            const cached = localStorage.getItem(`sessions_cache
